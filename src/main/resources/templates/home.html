@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout.html}">
+<head>
+    <title>Пациенты</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .btn-gradient { background: linear-gradient(90deg, #4364f7, #6fb1fc); border: none; color: #fff; }
+        .btn-gradient:hover { background: linear-gradient(90deg, #6fb1fc, #4364f7); color: #fff; }
+        .patient-card {
+            border: none; border-radius: 1rem; box-shadow: 0 6px 20px rgba(0,0,0,0.10);
+            overflow: hidden; height: 100%;
+        }
+        .patient-card .card-body {
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 1.25rem;
+        }
+        /* квадратная карточка */
+        .square {
+            aspect-ratio: 1 / 1; /* держим квадрат */
+            display: flex; flex-direction: column;
+        }
+        .status-badge {
+            font-size: .75rem; letter-spacing: .03rem;
+        }
+    </style>
+</head>
+<body>
+<div layout:fragment="mainFragment">
+
+    <!-- Верхняя панель действий -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="mb-0">Мои пациенты</h3>
+        <!-- можно убрать справа, если нужна только слева -->
+    </div>
+    <div class="mb-3">
+        <a class="btn btn-gradient" th:href="@{/patients/new}">Добавить пациента</a>
+    </div>
+
+    <!-- Empty state -->
+    <div th:if="${#lists.isEmpty(patients)}" class="text-center py-5">
+        <h5 class="mb-2">Пока нет пациентов</h5>
+        <p class="text-muted mb-3">Нажмите «Добавить пациента», чтобы пригласить первого спортсмена.</p>
+    </div>
+
+    <!-- Сетка карточек -->
+    <div th:if="${!#lists.isEmpty(patients)}" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+        <div class="col" th:each="p : ${patients}">
+            <div class="card patient-card square">
+
+                <div class="card-body">
+                    <!-- Статус -->
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="badge status-badge"
+                  th:with="st=${(p.status ?: '').toLowerCase()}"
+                  th:text="${st != '' ? p.status : '—'}"
+                  th:classappend="${st == 'active'} ? ' bg-success'
+                      : (st == 'critical' ? ' bg-danger' : ' bg-secondary')">
+  Статус
+</span>
+
+                        <small class="text-muted" th:text="'ID: ' + ${p.id}">ID: 1</small>
+                    </div>
+
+                    <!-- ФИО -->
+                    <div class="mb-3">
+                        <h5 class="mb-0" th:text="${p.fullname}">Иванов Иван</h5>
+                    </div>
+
+                    <!-- Кнопка Подробнее -->
+                    <div class="mt-auto">
+                        <!-- Вариант REST: /patients/{id} -->
+                        <a class="btn btn-gradient w-100" th:href="@{'/patients/' + ${p.id}}">Подробнее</a>
+                        <!-- Если нужен query-параметр: -->
+                        <!-- <a class="btn btn-gradient w-100" th:href="@{/patients/details(id=${p.id})}">Подробнее</a> -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

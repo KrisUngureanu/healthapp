@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.w3.org/1999/xhtml"
+      layout:decorate="layout/layout.html">
+<head>
+    <title>Terms of Service</title>
+</head>
+<body>
+<div layout:fragment="mainFragment">
+
+    <h1>Terms of Service</h1>
+    <p><strong>Version:</strong> 1.0<br>
+        <strong>Effective date:</strong> <em>17.09.2025</em><br>
+        <strong>Owner / Operator:</strong> JSC “Financial Center” (BIN 050740000618), Republic of Kazakhstan (“Company”, “we”, “Service”).<br>
+        <strong>Contact:</strong> <a href="mailto:dame_un_beso@mail.ru">dame_un_beso@mail.ru</a>
+    </p>
+
+    <h2>1. Service Description</h2>
+    <p>HealthApp is a closed platform for elite sports medical teams. Team physicians (“Physician”) invite athletes (“Athlete”) to share data collected via integrations with <strong>Oura, Polar, Garmin, and WHOOP</strong> (“Integrations”). The Service aggregates metrics (e.g., sleep, HR/HRV, SpO₂, activity, workouts) and visualizes them for assigned Physicians to support training and recovery decisions.</p>
+    <p><strong>Medical Disclaimer.</strong> The Service is <em>not</em> a medical device, does not diagnose conditions, and does not replace a medical consultation. All health decisions remain the responsibility of Physicians and Athletes.</p>
+
+    <h2>2. Roles & Access</h2>
+    <ul>
+        <li><strong>Team Administrator</strong> — creates teams, assigns Physicians, manages access.</li>
+        <li><strong>Physician</strong> — can view data only for Athletes they invited and are assigned to.</li>
+        <li><strong>Athlete</strong> — authorizes Integrations and may revoke access at any time.</li>
+    </ul>
+    <p><strong>Least-privilege principle:</strong> Athlete data is visible <em>only</em> to assigned team Physicians. All access is logged.</p>
+
+    <h2>3. Registration & Accounts</h2>
+    <ul>
+        <li>Access is invite-based (invite link) or via a team’s corporate access.</li>
+        <li>Users must provide accurate information and protect credentials (login/password, MFA).</li>
+        <li>We may limit or suspend access upon breach of these Terms or legal requirements.</li>
+    </ul>
+
+    <h2>4. Integrations (OAuth)</h2>
+    <ul>
+        <li>Athletes voluntarily authorize Oura/Polar/Garmin/WHOOP via OAuth and can revoke authorization in the provider’s console or in the Service.</li>
+        <li>We request the minimum scopes required. The types of data are listed in the Privacy Policy.</li>
+    </ul>
+
+    <h2>5. Acceptable Use</h2>
+    <p>Prohibited: (i) unauthorized access; (ii) interference with the Service; (iii) reverse engineering/decompilation; (iv) malware or harmful code; (v) sharing/distributing data without legal basis and data subject consent; (vi) using the Service outside elite sports medicine purposes of the team.</p>
+
+    <h2>6. Fees</h2>
+    <p>If applicable, pricing and payment terms are provided in the team’s console/contract. Material pricing changes are announced in advance (<em>insert notice period</em>).</p>
+
+    <h2>7. Intellectual Property</h2>
+    <p>All software, design, and content of the Service belong to the Company. Users receive a limited, non-exclusive, revocable license to use the Service within its functionality.</p>
+
+    <h2>8. Disclaimer & Liability</h2>
+    <p>The Service is provided “as is”. We do not warrant data completeness/accuracy from Integrations, uninterrupted operation, or fitness for a particular purpose. To the extent permitted by law, the Company is not liable for indirect damages, lost profits, or decisions made based on the Service’s data.</p>
+
+    <h2>9. Privacy & Data Protection</h2>
+    <p>Processing of personal and special categories of data (health) is governed by our <a th:href="@{/privacy}">Privacy Policy</a>. By using the Service, you confirm you have read and agree to it.</p>
+
+    <h2>10. Security</h2>
+    <p>We apply technical and organizational measures: encryption in transit/at rest, role-based access controls, audit logging, and backups. Details are provided in the Privacy Policy.</p>
+
+    <h2>11. Suspension & Termination</h2>
+    <p>We may suspend/terminate access due to (i) breaches of these Terms; (ii) legal/regulatory requests; (iii) security risks. Users may stop using the Service at any time. Teams may request export/deletion per the Privacy Policy.</p>
+
+    <h2>12. Governing Law & Dispute Resolution</h2>
+    <p>These Terms are governed by the laws of the Republic of Kazakhstan. Disputes are subject to the courts of the Republic of Kazakhstan, unless the parties agree to mediation/arbitration.</p>
+
+    <h2>13. Changes</h2>
+    <p>We may update these Terms. The new version becomes effective on the publication date or as indicated. Material changes will be announced to Users.</p>
+
+    <h2>14. Contacts</h2>
+    <p>Terms & Legal: <a href="mailto:dame_un_beso@mail.ru">dame_un_beso@mail.ru</a><br>
+        Data Protection (DPO): <a href="mailto:dame_un_beso@mail.ru">dame_un_beso@mail.ru</a>
+    </p>
+
+</div>
+</body>
+</html>

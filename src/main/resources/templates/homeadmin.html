@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout.html}">
+<head>
+    <title>Doctors</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card {
+            border-radius: 1rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border: none;
+        }
+        .card-header {
+            border-radius: 1rem 1rem 0 0;
+            background: linear-gradient(90deg, #4364f7, #6fb1fc);
+            color: #fff;
+            padding: 1rem 1.25rem;
+        }
+        .table thead th {
+            border-bottom: none;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-size: .8rem;
+            letter-spacing: .06rem;
+        }
+        .table tbody tr:hover {
+            background-color: rgba(67,100,247, .06);
+        }
+        .btn-gradient {
+            background: linear-gradient(90deg, #4364f7, #6fb1fc);
+            border: none;
+            color: #fff;
+        }
+        .btn-gradient:hover {
+            background: linear-gradient(90deg, #6fb1fc, #4364f7);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+<div layout:fragment="mainFragment">
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Doctors</h4>
+                    <!-- можно добавить поиск позже -->
+                </div>
+                <div class="card-body">
+                    <div th:if="${#lists.isEmpty(doctors)}" class="alert alert-info mb-0">
+                        No doctors found.
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(doctors)}" class="table-responsive">
+                        <table class="table align-middle table-hover mb-0">
+                            <thead>
+                            <tr>
+                                <th style="width:120px;">ID</th>
+                                <th>Username</th>
+                                <th style="width:160px;" class="text-end">Action</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="doc : ${doctors}">
+                                <td th:text="${doc.id}">1</td>
+                                <td th:text="${doc.username}">doctor_username</td>
+                                <td class="text-end">
+                                    <!-- Вариант 1: REST-путь /doctors/{id} -->
+                                    <a th:href="@{'/doctors/' + ${doc.id}}"
+                                       class="btn btn-sm btn-gradient">Подробнее</a>
+                                    <!-- Вариант 2 (если нужен query): -->
+                                    <!-- <a th:href="@{/doctor(id=${doc.id})}" class="btn btn-sm btn-gradient">Подробнее</a> -->
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
