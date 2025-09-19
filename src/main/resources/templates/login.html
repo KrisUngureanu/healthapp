@@ -19,41 +19,41 @@
 <div layout:fragment="mainFragment" class="d-flex justify-content-center align-items-center" style="min-height: 100vh;">
     <div class="col-md-6 col-lg-4">
         <div class="login-card">
-            <h3 class="text-center mb-4">Sign In</h3>
+            <h3 class="text-center mb-4">Авторизация</h3>
 
             <form th:action="@{/login}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
                 <div class="mb-3">
-                    <label for="username" class="form-label">Email or Username</label>
+                    <label for="username" class="form-label">Email или имя пользователя</label>
                     <input type="text" class="form-control" id="username" name="username" required autofocus>
                 </div>
 
                 <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
+                    <label for="password" class="form-label">Пароль</label>
                     <input type="password" class="form-control" id="password" name="password" required>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="rememberMe" name="remember-me">
-                        <label class="form-check-label" for="rememberMe">Remember me</label>
+                        <label class="form-check-label" for="rememberMe">Запомнить меня</label>
                     </div>
-                    <a href="#" class="text-decoration-none">Forgot password?</a>
+
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100">Sign In</button>
+                <button type="submit" class="btn btn-primary w-100">Войти</button>
 
-                <div th:if="${param.error}" class="alert alert-danger mt-3">Invalid username or password</div>
-                <div th:if="${param.logout}" class="alert alert-success mt-3">You have been logged out</div>
+                <div th:if="${param.error}" class="alert alert-danger mt-3">Неверное имя пользователя или пароль</div>
+                <div th:if="${param.logout}" class="alert alert-success mt-3">Выполнен выход</div>
                 <div th:if="${param.registered}" class="alert alert-success mt-3">
-                    Registration successful. Please sign in.
+                    Успешная регистрация. Пожалуйста, войдите в аккаунт
                 </div>
             </form>
 
             <hr>
             <div class="text-center">
-                <p class="mb-0">Don’t have an account? <a th:href="@{/register}" class="text-decoration-none">Register</a></p>
+                <p class="mb-0">Еще нет аккаунта? <a th:href="@{/register}" class="text-decoration-none">Регистрация</a></p>
             </div>
         </div>
     </div>

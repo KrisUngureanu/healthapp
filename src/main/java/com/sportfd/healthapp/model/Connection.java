@@ -15,6 +15,7 @@ public class Connection {
     private Long id;
     private Long patientId;
     @Enumerated(EnumType.STRING)
+    @Column(name = "provider", nullable = false, length = 32)
     private Provider provider;
     @Column(columnDefinition="text")
     private String accessToken;

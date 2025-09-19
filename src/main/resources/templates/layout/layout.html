@@ -62,7 +62,7 @@
 
                 <!-- Пример пункта только для роли DOCTOR -->
                 <li class="nav-item" sec:authorize="hasRole('DOCTOR')">
-                    <a class="nav-link" th:href="@{/patients}">Patients</a>
+                    <a class="nav-link" th:href="@{/}">Patients</a>
                 </li>
 
                 <!-- Гость: показать Sign In / Register -->
@@ -107,4 +107,45 @@
 <div class="container mt-4" layout:fragment="mainFragment"></div>
 
 </body>
+<script>
+    function copyInviteUrl(btn) {
+        const url = btn.getAttribute('data-url');
+        if (!url) return;
+
+        btn.disabled = true;
+
+        fetch(url, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(r => {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.text();
+            })
+            .then(link => {
+                // Пытаемся скопировать в буфер
+                return navigator.clipboard.writeText(link)
+                    .then(() => showInviteToast('Ссылка скопирована в буфер обмена.'))
+                    .catch(() => {
+                        // если clipboard недоступен — покажем prompt
+                        prompt('Скопируйте ссылку вручную:', link);
+                    });
+            })
+            .catch(err => {
+                console.error(err);
+                showInviteToast('Не удалось получить ссылку. Попробуйте позже.');
+            })
+            .finally(() => { btn.disabled = false; });
+    }
+
+    function showInviteToast(message) {
+        const toastEl = document.getElementById('inviteToast');
+        if (!toastEl) { alert(message); return; }
+        toastEl.querySelector('.toast-body').textContent = message;
+        const t = new bootstrap.Toast(toastEl, { delay: 2500 });
+        t.show();
+    }
+</script>
+
 </html>

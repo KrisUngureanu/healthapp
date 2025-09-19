@@ -26,7 +26,7 @@ public class PatientService {
         Patient p = new Patient();
         p.setFullname(req.getFullname());
         p.setDoctorId(me.getId());               // ← тут выставляем ID текущего пользователя
-        p.setStatus((req.getStatus() == null || req.getStatus().isBlank()) ? "Active" : req.getStatus());
+        p.setStatus("wait");
 
         return patientRepository.save(p);
     }

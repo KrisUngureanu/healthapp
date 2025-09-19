@@ -21,38 +21,38 @@
 <div layout:fragment="mainFragment" class="d-flex justify-content-center align-items-center" style="min-height: 100vh;">
     <div class="col-md-6 col-lg-5">
         <div class="register-card">
-            <h3 class="text-center mb-4">Create Account</h3>
+            <h3 class="text-center mb-4">Создайте аккаунт</h3>
 
             <!-- Привязываем к DTO: registrationRequest -->
             <form th:action="@{/register}" th:object="${registrationRequest}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
                 <div class="mb-3">
-                    <label class="form-label">Full Name</label>
+                    <label class="form-label">ФИО</label>
                     <input th:field="*{fullname}" type="text" class="form-control" required>
                     <div class="text-danger" th:if="${#fields.hasErrors('fullname')}" th:errors="*{fullname}"></div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Email address</label>
+                    <label class="form-label">Email адрес</label>
                     <input th:field="*{email}" type="email" class="form-control" required>
                     <div class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Username</label>
+                    <label class="form-label">Имя пользователя</label>
                     <input th:field="*{username}" type="text" class="form-control" required>
                     <div class="text-danger" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Password</label>
+                    <label class="form-label">Пароль</label>
                     <input th:field="*{password}" type="password" class="form-control" minlength="6" required>
                     <div class="text-danger" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Confirm Password</label>
+                    <label class="form-label">Повторите пароль</label>
                     <input th:field="*{confirmPassword}" type="password" class="form-control" minlength="6" required>
                     <div class="text-danger" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"></div>
                 </div>
@@ -73,8 +73,8 @@
 
             <hr>
             <div class="text-center">
-                <p class="mb-0">Already have an account?
-                    <a th:href="@{/login}" class="text-decoration-none">Sign In</a>
+                <p class="mb-0">Уже есть аккаунт?
+                    <a th:href="@{/login}" class="text-decoration-none">Войти</a>
                 </p>
             </div>
         </div>

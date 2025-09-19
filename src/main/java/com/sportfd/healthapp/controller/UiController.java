@@ -6,12 +6,16 @@ import com.sportfd.healthapp.model.Users;
 import com.sportfd.healthapp.repo.PatientRepository;
 import com.sportfd.healthapp.repo.SleepRepository;
 import com.sportfd.healthapp.repo.UserRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -92,6 +96,22 @@ public class UiController {
     @GetMapping("/login")
     public String getLogin(){
         return "login";
+    }
+    @GetMapping("/thanks")
+    public String thanks(@RequestParam String provider,
+                         @RequestParam Long pid,
+                         Model model) {
+        String providerName = switch (provider.toLowerCase()) {
+            case "oura" -> "Oura";
+            case "polar" -> "Polar";
+            case "whoop" -> "WHOOP";
+            case "garmin" -> "Garmin";
+            default -> provider;
+        };
+        model.addAttribute("providerName", providerName);
+        model.addAttribute("pid", pid);
+
+        return "thanks";
     }
 
 }

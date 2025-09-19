@@ -29,19 +29,11 @@ public class OuraOAuthService {
     @Value("${app.oura.client-secret}")  private String clientSecret;
     @Value("${app.oura.redirect-uri}")   private String redirectUri;
 
-    public String buildAuthorizeUrl(String scopes) {
-        // scopes = "daily workout heartrate spo2" (минимум нужного)
-        return "https://cloud.ouraring.com/v2/oauth/authorize"
-                + "?client_id=" + clientId
-                + "&response_type=code"
-                + "&redirect_uri=" + redirectUri
-                + "&scope=" + scopes;
-    }
 
     @Transactional
     public void exchangeCodeAndSave(Long userId, String code) {
         OuraTokenResponse res = ouraAuthClient.post()
-                .uri("/v2/oauth/token")
+                .uri("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters
                         .fromFormData("grant_type","authorization_code")
@@ -62,7 +54,7 @@ public class OuraOAuthService {
         if (c.getExpiresAt().isAfter(LocalDateTime.now().plusSeconds(60))) return; // ещё жив
 
         OuraTokenResponse res = ouraAuthClient.post()
-                .uri("/v2/oauth/token")
+                .uri("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters
                         .fromFormData("grant_type","refresh_token")
@@ -76,11 +68,7 @@ public class OuraOAuthService {
         saveTokens(userId, res);
     }
 
-    @Transactional
-    public void disconnect(Long userId) {
-        connRepo.deleteByUserId(userId);
-        // (опционально) запостить revoke в Oura, если появится endpoint
-    }
+
 
     private void saveTokens(Long userId, OuraTokenResponse res) {
         LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(res.getExpiresIn());
@@ -102,7 +90,7 @@ public class OuraOAuthService {
         LocalDate start = end.minusDays(7);
 
         return ouraWebClient.get()
-                .uri(uri -> uri.path("/v2/usercollection/daily_sleep")
+                .uri(uri -> uri.path("/usercollection/daily_sleep")
                         .queryParam("start_date", start)
                         .queryParam("end_date", end)
                         .build())

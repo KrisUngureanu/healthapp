@@ -1,10 +1,13 @@
 package com.sportfd.healthapp.controller;
 
 import com.sportfd.healthapp.dto.PatientCreateRequest;
+import com.sportfd.healthapp.model.HrSample;
 import com.sportfd.healthapp.model.Patient;
 import com.sportfd.healthapp.model.SleepRecord;
+import com.sportfd.healthapp.repo.HrSampleRepository;
 import com.sportfd.healthapp.repo.PatientRepository;
 import com.sportfd.healthapp.repo.SleepRepository;
+import com.sportfd.healthapp.service.PatientMetricsService;
 import com.sportfd.healthapp.service.PatientService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -25,9 +28,12 @@ public class PatientController {
     private final SleepRepository sleeps;
     private final PatientService patientService;
     private final PatientRepository patientRepository;
-    public PatientController(SleepRepository sleeps, PatientService patientService, PatientRepository patientRepository) { this.sleeps = sleeps;
+    private final PatientMetricsService patientMetricsService;
+    public PatientController(SleepRepository sleeps, PatientService patientService, PatientRepository patientRepository, PatientMetricsService patientMetricsService) { this.sleeps = sleeps;
         this.patientService = patientService;
         this.patientRepository = patientRepository;
+
+        this.patientMetricsService = patientMetricsService;
     }
 
 
@@ -70,6 +76,13 @@ public class PatientController {
     public String patientDetails(@PathVariable Long id, Model model) {
         Patient p = patientRepository.findById(id).orElseThrow();
         model.addAttribute("patient", p);
-        return "patient-details"; // создашь при необходимости
+        var zone = java.time.ZoneId.of("Asia/Almaty"); // можно вынести в настройки/профиль
+        var m = patientMetricsService.loadToday(id, zone);
+        model.addAttribute("m", m);  // одна обёртка на все таблицы
+
+
+        return "patientInfo";
     }
+
+
 }

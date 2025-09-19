@@ -1,17 +1,19 @@
 package com.sportfd.healthapp.model;
 
 import com.sportfd.healthapp.model.enums.Provider;
+import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.Getter; import lombok.Setter;
 import org.hibernate.annotations.Type;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import com.vladmihalcea.hibernate.type.json.JsonType;
+
 @Getter @Setter
-@Entity @Table(name="activity_daily",
-        uniqueConstraints = @UniqueConstraint(name="ux_activity_daily",
+@Entity @Table(name="sleep_daily",
+        uniqueConstraints = @UniqueConstraint(name="ux_sleep_daily",
                 columnNames = {"patient_id","provider","day"}))
-public class ActivityDaily {
+public class SleepDaily {
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;
 
@@ -24,10 +26,13 @@ public class ActivityDaily {
 
     @Column(name="source_id", length=255) private String sourceId;
 
-    private Integer steps;
-    @Column(name="calories_active") private Integer caloriesActive;
-    @Column(name="distance_m") private Integer distanceM;
-    @Column(name="training_load") private Integer trainingLoad;
+    @Column(name="total_sleep_sec") private Integer totalSleepSec;
+    @Column(name="time_in_bed_sec") private Integer timeInBedSec;
+    private Integer score;
+    @Column(name="rhr_bpm") private Short rhrBpm;
+    @Column(name="hrv_avg_ms") private Short hrvAvgMs;
+    @Column(name="temp_deviation_c", precision=4, scale=2) private BigDecimal tempDeviationC;
+    @Column(name="resp_rate", precision=4, scale=2) private BigDecimal respRate;
     @Type(JsonType.class)
     @Column(name="raw", columnDefinition="jsonb") private String raw;
 }

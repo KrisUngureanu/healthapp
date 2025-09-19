@@ -31,21 +31,7 @@
                             <div class="text-danger" th:if="${#fields.hasErrors('fullname')}" th:errors="*{fullname}"></div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Внешний User ID (опционально)</label>
-                            <input th:field="*{userId}" type="number" class="form-control" min="1" step="1" placeholder="например, ID аккаунта спортсмена">
-                            <div class="text-danger" th:if="${#fields.hasErrors('userId')}" th:errors="*{userId}"></div>
-                        </div>
 
-                        <div class="mb-4">
-                            <label class="form-label">Статус</label>
-                            <select th:field="*{status}" class="form-select">
-                                <option value="">— выбрать —</option>
-                                <option value="Active">Active</option>
-                                <option value="Monitoring">Monitoring</option>
-                                <option value="Critical">Critical</option>
-                            </select>
-                        </div>
 
                         <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}"
                              th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
