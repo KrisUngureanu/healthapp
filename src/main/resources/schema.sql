@@ -35,7 +35,8 @@ create table if not exists patients (
                                         user_id bigint,
                                         fullname varchar(255) not null,
                                         doctorId bigint,
-                                        status varchar
+                                        status varchar,
+                                        device varchar
     );
 
 

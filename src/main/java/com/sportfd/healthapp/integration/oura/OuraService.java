@@ -90,6 +90,7 @@ public class OuraService {
         c.setPatientId(patientId);
         Optional<Patient> patient = patientRepository.findById(patientId);
         patient.get().setStatus("active");
+        patient.get().setDevice("oura");
         c.setProvider(PROVIDER);
         c.setAccessToken(res.getAccessToken());
         c.setRefreshToken(res.getRefreshToken());
@@ -102,23 +103,5 @@ public class OuraService {
         conns.save(c);
     }
 
-    /** пример запроса: daily_sleep за 7 дней, сырой JSON */
-    public String getDailySleepJson(Long patientId) {
-        refreshIfNeeded(patientId);
-        var c = conns.findByPatientIdAndProvider(patientId, PROVIDER).orElseThrow();
 
-        var end = LocalDate.now();
-        var start = end.minusDays(7);
-
-        var headers = new HttpHeaders();
-        headers.setBearerAuth(c.getAccessToken());
-
-        var url = UriComponentsBuilder
-                .fromHttpUrl("https://api.ouraring.com/v2/usercollection/daily_sleep")
-                .queryParam("start_date", start)
-                .queryParam("end_date", end)
-                .build(true).toUriString();
-
-        return rest.exchange(url, HttpMethod.GET, new HttpEntity<Void>(headers), String.class).getBody();
-    }
 }

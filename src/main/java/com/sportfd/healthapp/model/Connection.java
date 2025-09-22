@@ -28,4 +28,7 @@ public class Connection {
 
     public Connection() {}
 
+    public void setTokenType(String bearer) {
+
+    }
 }

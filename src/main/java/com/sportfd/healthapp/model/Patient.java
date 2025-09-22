@@ -15,6 +15,7 @@ public class Patient {
     @Column(name = "doctorid")
     private Long doctorId;
     private String status;
+    private String device;
     public Patient() {}
 
 }
