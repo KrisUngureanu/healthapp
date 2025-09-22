@@ -6,6 +6,7 @@ import com.sportfd.healthapp.model.*;
 import com.sportfd.healthapp.model.enums.Provider;
 import com.sportfd.healthapp.repo.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -13,18 +14,36 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
+
 public class OuraClient implements ProviderClient {
+
 
     private final RestClient ouraRest;
     private final ConnectionRepository connections;
     private final SleepDailyRepository sleepDailyRepo;
     private final Spo2SampleRepository spo2SampleRepository;
+
+    public OuraClient(@Qualifier("ouraRestClient") RestClient ouraRest, ConnectionRepository connections, SleepDailyRepository sleepDailyRepo, Spo2SampleRepository spo2SampleRepository, ActivityDailyRepository activityDailyRepository, ReadinessDailyRepository readinessDailyRepo, SleepSessionRepository sleepSessionRepo, ActivitySessionRepository activitySessionRepo, HrSampleRepository hrSampleRepo) {
+        this.ouraRest = ouraRest;
+
+        this.connections = connections;
+        this.sleepDailyRepo = sleepDailyRepo;
+        this.spo2SampleRepository = spo2SampleRepository;
+        this.activityDailyRepository = activityDailyRepository;
+        this.readinessDailyRepo = readinessDailyRepo;
+        this.sleepSessionRepo = sleepSessionRepo;
+        this.activitySessionRepo = activitySessionRepo;
+        this.hrSampleRepo = hrSampleRepo;
+    }
 
     public record DaySteps(LocalDate day, Integer steps) {}
     public final ActivityDailyRepository activityDailyRepository;
@@ -177,7 +196,7 @@ public class OuraClient implements ProviderClient {
     }
 
     private static String enc(String s) {
-        return java.net.URLEncoder.encode(s, java.nio.charset.StandardCharsets.UTF_8);
+        return URLEncoder.encode(s, StandardCharsets.UTF_8);
     }
 
     // минимальная модель ответа токена
@@ -225,7 +244,7 @@ public class OuraClient implements ProviderClient {
             if (day != null) out.add(new DaySteps(day, steps));
         }
         // отсортируем на всякий
-        out.sort(java.util.Comparator.comparing(DaySteps::day));
+        out.sort(Comparator.comparing(DaySteps::day));
         return out;
     }
 
@@ -509,8 +528,8 @@ public class OuraClient implements ProviderClient {
         for (var k : keys) if (n.hasNonNull(k)) return n.get(k).asBoolean();
         return null;
     }
-    private static java.math.BigDecimal pickDecimal(JsonNode n, String... keys) {
-        for (var k : keys) if (n.hasNonNull(k)) return new java.math.BigDecimal(n.get(k).asText());
+    private static BigDecimal pickDecimal(JsonNode n, String... keys) {
+        for (var k : keys) if (n.hasNonNull(k)) return new BigDecimal(n.get(k).asText());
         return null;
     }
     private static OffsetDateTime pickTs(JsonNode n, String... keys) {

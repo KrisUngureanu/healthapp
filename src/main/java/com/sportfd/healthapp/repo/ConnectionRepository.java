@@ -18,4 +18,8 @@ public interface ConnectionRepository extends JpaRepository<Connection, Long> {
     Optional<Connection> findByPatientIdAndProvider(Long patientId, Provider provider);
 
     void deleteByPatientIdAndProvider(Long patientId, Provider provider);
+
+    Optional<Connection> findFirstByPatientIdAndProvider(Long pid, Provider provider);
+
+    Connection findByAccessToken(String oldAccessToken);
 }

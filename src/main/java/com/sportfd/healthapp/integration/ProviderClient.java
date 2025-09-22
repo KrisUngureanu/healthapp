@@ -14,7 +14,7 @@ public interface ProviderClient {
     void exchangeCodeAndSave(Long patientId, String code);
     void disconnect(Long patientId);
 
-    // Синхронизации (реализуешь по мере надобности)
+
     default int syncSleepDaily(Long patientId, LocalDate start, LocalDate end) { return 0; }
     default int syncSleepSessions(Long patientId, OffsetDateTime from, OffsetDateTime to) { return 0; }
     default int syncActivityDaily(Long patientId, LocalDate start, LocalDate end) { return 0; }

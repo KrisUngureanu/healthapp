@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout.html}">
+<head>
+  <title>Подключение Whoop</title>
+  <style>
+    .card { border:none; border-radius:1rem; box-shadow:0 6px 20px rgba(0,0,0,.15); }
+    .card-header{ border-radius:1rem 1rem 0 0; background:linear-gradient(90deg,#4364f7,#6fb1fc); color:#fff }
+    .btn-gradient{ background:linear-gradient(90deg,#4364f7,#6fb1fc); border:none; color:#fff }
+    .btn-gradient:hover{ background:linear-gradient(90deg,#6fb1fc,#4364f7); color:#fff }
+  </style>
+</head>
+<body>
+<div layout:fragment="mainFragment">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card">
+        <div class="card-header"><h4 class="mb-0">Подключение Whoop</h4></div>
+        <div class="card-body">
+          <p class="text-muted">Нажмите кнопку ниже, чтобы авторизовать доступ к данным Whoop для вашего врача.</p>
+          <div class="d-flex gap-2">
+            <a class="btn btn-gradient" th:href="@{/oauth/whoop/connect}">Подключить Whoop</a>
+            <a class="btn btn-outline-secondary" th:href="@{/privacy}" target="_blank">Подробнее о конфиденциальности</a>
+          </div>
+          <small class="text-muted d-block mt-3">ID пациента: <span th:text="${patientId}">—</span></small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

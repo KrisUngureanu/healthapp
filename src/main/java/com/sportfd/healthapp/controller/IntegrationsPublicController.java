@@ -22,7 +22,8 @@ public class IntegrationsPublicController {
 
 
     @Value("${app.oura.scopes:daily workout heartrate spo2 session}") private String ouraScopes;
-
+    @Value("${app.whoop.scopes:offline read:profile read:sleep read:recovery read:workout read:cycles read:body_measurement}")
+    private String whoopScopes;
     @GetMapping("/oauth/{provider}/start")
     public String start(@PathVariable String provider, @RequestParam("t") String token, HttpSession session, Model model) {
         Long pid = invites.verifyAndGetPatientId(token);
@@ -31,7 +32,13 @@ public class IntegrationsPublicController {
         session.setAttribute("INTEG_PROVIDER", provider.toUpperCase());
         model.addAttribute("patientId", pid);
         model.addAttribute("provider", provider.toUpperCase());
-        return "patient-oura-start"; // можно сделать общий шаблон; пока переиспользуем
+        String providerUpperCase = provider.toUpperCase();
+        if (providerUpperCase.equals("OURA")){
+            return "patient-oura-start";
+        } else if (providerUpperCase.equals("WHOOP")) {
+            return "patient-whoop-start";
+        }
+        return "patient-oura-start";
     }
 
     @GetMapping("/oauth/{provider}/connect")
@@ -45,6 +52,7 @@ public class IntegrationsPublicController {
         var prov = Provider.valueOf(p);
         String scopes = switch (prov) {
             case OURA -> ouraScopes;
+            case WHOOP ->  whoopScopes;
             default -> "";
         };
         // redirectUri берётся из клиента (внутри)
@@ -68,4 +76,6 @@ public class IntegrationsPublicController {
         clients.get(prov).exchangeCodeAndSave(pid, code);
         return "redirect:/thanks?provider=" + provider + "&pid=" + pid;
     }
+
+
 }
