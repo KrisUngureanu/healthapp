@@ -1,642 +1,541 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       layout:decorate="~{layout/layout.html}">
 <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Пациент</title>
+
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons (аккуратные иконки для кнопок) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
     <style>
         :root {
             --gradA: #4364f7;
             --gradB: #6fb1fc;
+            --bg-soft: #f7f9ff;
+            --card-shadow: 0 6px 20px rgba(0, 0, 0, .12);
+            --radius-xl: 1rem;
+            --radius-lg: .75rem;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-soft: #12141a;
+            }
+            body { background: #0e1117; color: #dee3ea; }
+            .card { background: #0f1420; box-shadow: 0 12px 24px rgba(0,0,0,.35); }
+            .table { --bs-table-striped-bg: rgba(255,255,255,.03); --bs-table-hover-bg: rgba(255,255,255,.05); }
+            .nav-pills .nav-link { background: #111827; border-color: #1f2937; color: #c7d2fe; }
+            .nav-pills .nav-link:hover { background: #111b2a; border-color: #24324a; }
+            .alert-info { background: rgba(56, 189, 248, .08); border-color: rgba(56, 189, 248, .25); color: #a5d8ff; }
         }
 
-        .btn-gradient {
-            background: linear-gradient(90deg, var(--gradA), var(--gradB));
-            border: none;
-            color: #fff
-        }
+        .btn-gradient { background: linear-gradient(90deg, var(--gradA), var(--gradB)); border: none; color: #fff }
+        .btn-gradient:hover { background: linear-gradient(90deg, var(--gradB), var(--gradA)); color: #fff }
 
-        .btn-gradient:hover {
-            background: linear-gradient(90deg, var(--gradB), var(--gradA));
-            color: #fff
-        }
+        .card { border: none; border-radius: var(--radius-xl); box-shadow: var(--card-shadow); }
+        .card-header { border-radius: var(--radius-xl) var(--radius-xl) 0 0; background: linear-gradient(90deg, var(--gradA), var(--gradB)); color: #fff }
 
-        .card {
-            border: none;
-            border-radius: 1rem;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, .15)
-        }
+        .stat { border-radius: var(--radius-lg); background: var(--bg-soft); padding: 1rem; display: flex; align-items: center; gap: .75rem; min-height: 90px }
+        .stat .num { font-weight: 700; font-size: 1.25rem }
 
-        .card-header {
-            border-radius: 1rem 1rem 0 0;
-            background: linear-gradient(90deg, var(--gradA), var(--gradB));
-            color: #fff
-        }
+        /* Пилюли табов */
+        .nav-pills { gap: .5rem }
+        .nav-pills .nav-link { color: #2945e3; background: #f3f6ff; border: 1px solid #dfe6ff; border-radius: 2rem; transition: .2s; }
+        .nav-pills .nav-link:hover { color: #1c2fd1; background: #eaf0ff; border-color: #d3dcff; }
+        .nav-pills .nav-link.active { color: #fff !important; background: linear-gradient(90deg, var(--gradA), var(--gradB)) !important; border-color: transparent; box-shadow: 0 6px 16px rgba(67, 100, 247, .25); }
 
-        .stat {
-            border-radius: .75rem;
-            background: #f7f9ff;
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            gap: .75rem;
-            min-height: 90px
-        }
+        /* Таблицы */
+        .table-responsive { position: relative; }
+        .table thead th { position: sticky; top: 0; z-index: 2; background: rgba(255,255,255,.9); backdrop-filter: blur(6px); }
+        @media (prefers-color-scheme: dark) { .table thead th { background: rgba(10,12,20,.75); } }
+        .table-sm td, .table-sm th { padding: .45rem .6rem; }
+        .table-fit { width: max-content; min-width: 100%; }
 
-        .stat .num {
-            font-weight: 700;
-            font-size: 1.25rem
-        }
+        /* Тени по краям скролла для подсказки, что есть горизонтальный скролл */
+        .scroll-shadow:before, .scroll-shadow:after { content: ""; position: sticky; top: 0; width: 16px; height: 100%; pointer-events: none; z-index: 3; }
+        .scroll-shadow:before { left: 0; box-shadow: inset 12px 0 12px -12px rgba(0,0,0,.25); }
+        .scroll-shadow:after  { right: 0; box-shadow: inset -12px 0 12px -12px rgba(0,0,0,.25); }
 
-        /* табы: контраст и читаемость */
-        .nav-pills {
-            gap: .5rem
-        }
+        /* Спарклайны */
+        .spark-wrap { height: 60px; margin-top: .35rem }
+        .spark-wrap canvas { width: 100% !important; height: 100% !important; }
+        .spark-wrap.big { height: 120px }
 
-        .nav-pills .nav-link {
-            color: #2945e3;
-            background: #f3f6ff;
-            border: 1px solid #dfe6ff;
-            border-radius: 2rem;
-            transition: .2s;
-        }
+        /* Значки статуса */
+        .badge-status { font-size: .875rem; padding: .5rem .75rem; border-radius: 2rem; }
 
-        .nav-pills .nav-link:hover {
-            color: #1c2fd1;
-            background: #eaf0ff;
-            border-color: #d3dcff;
-        }
-
-        .nav-pills .nav-link.active {
-            color: #fff !important;
-            background: linear-gradient(90deg, var(--gradA), var(--gradB)) !important;
-            border-color: transparent;
-            box-shadow: 0 6px 16px rgba(67, 100, 247, .25);
-        }
-
-        /* графики */
-        .spark-wrap {
-            height: 60px;
-            margin-top: .35rem
-        }
-
-        .spark-wrap canvas {
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        .spark-wrap.big {
-            height: 120px
-        }
-
-        .actions .btn {
-            white-space: nowrap
-        }
+        /* Плотность таблиц */
+        .table-compact .table-sm td, .table-compact .table-sm th { padding: .25rem .4rem; font-size: .875rem; }
     </style>
 </head>
 <body>
 <div layout:fragment="mainFragment" th:with="st=${(patient.status ?: '').toLowerCase()}">
-
-    <!-- Шапка -->
+    <!-- Хлебные крошки + заголовок -->
     <div class="card mb-4">
-        <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-3">
-                <a th:href="@{/}" class="btn btn-sm btn-light border">← Назад</a>
-                <div>
-                    <h4 class="mb-0" th:text="${patient.fullname}">ФИО пациента</h4>
-                    <small class="opacity-75">ID: <span th:text="${patient.id}">1</span></small>
+        <div class="card-header py-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="d-flex align-items-center gap-3">
+                    <a th:href="@{/}" class="btn btn-sm btn-light border"><i class="bi bi-arrow-left"></i> Назад</a>
+                    <div>
+                        <h4 class="mb-0" th:text="${patient.fullname}">ФИО пациента</h4>
+                        <small class="opacity-75">ID: <span th:text="${patient.id}">1</span></small>
+                    </div>
                 </div>
-            </div>
 
-            <div class="d-flex align-items-center gap-3 actions">
-                <!-- Статус -->
-                <span class="badge"
-                      th:text="${st != '' ? patient.status : '—'}"
-                      th:classappend="${st == 'active'} ? ' bg-success' : (st == 'critical' ? ' bg-danger' : ' bg-secondary')">—</span>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="badge badge-status"
+                th:text="${st != '' ? patient.status : '—'}"
+                th:classappend="${st == 'active'} ? ' bg-success' : (st == 'critical' ? ' bg-danger' : ' bg-secondary')">—</span>
 
-                <!-- Действия врача/админа -->
-                <div sec:authorize="hasAnyRole('DOCTOR','ADMIN')" class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="vr d-none d-md-block"></div>
 
-                    <!-- Отключения -->
-                    <form th:if="${patient.status == 'active' and patient.device == 'oura'}"
+                    <!-- Кнопки действий врача/админа -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap" sec:authorize="hasAnyRole('DOCTOR','ADMIN')">
+                        <!-- Отключения -->
+                        <form th:if="${patient.status == 'active' and patient.device == 'oura'}"
+                              th:action="@{/patients/{id}/{provider}/disconnect(id=${patient.id}, provider='oura')}" method="post" class="mb-0">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <button class="btn btn-outline-light"><i class="bi bi-power"></i> Отключить Oura</button>
+                        </form>
 
-                          th:action="@{/patients/{id}/{provider}/disconnect(id=${patient.id}, provider='oura')}"
-                          method="post" class="mb-0">
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                        <button class="btn btn-outline-light">Отключить Oura</button>
-                    </form>
+                        <form th:if="${patient.status == 'active' and patient.device == 'whoop'}"
+                              th:action="@{/patients/{id}/{provider}/disconnect(id=${patient.id}, provider='whoop')}" method="post" class="mb-0">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <button class="btn btn-outline-light"><i class="bi bi-power"></i> Отключить Whoop</button>
+                        </form>
 
-                    <form th:if="${patient.status == 'active' and patient.device == 'whoop'}"
+                        <form th:if="${st == 'active'}" th:action="@{/patients/{id}/integrations/{provider}/syncAll(id=${patient.id}, provider=${patient.device})}" method="post" class="mb-0">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <button class="btn btn-outline-light"><i class="bi bi-cloud-arrow-down"></i> Получить данные</button>
+                        </form>
 
-                          th:action="@{/patients/{id}/{provider}/disconnect(id=${patient.id}, provider='whoop')}"
-                          method="post" class="mb-0">
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                        <button class="btn btn-outline-light">Отключить Whoop</button>
-                    </form>
-
-                    <form th:if="${st == 'active'}"
-                          th:action="@{/patients/{id}/integrations/oura/syncAll(id=${patient.id})}"
-                          method="post" class="mb-0">
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                        <button class="btn btn-outline-light">Получить данные</button>
-                    </form>
-
-
-                    <div th:if="${patient.status != 'active'}" class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-light"
-                                th:attr="data-url=@{/patients/{id}/oura/invite(id=${patient.id})}"
-                                onclick="copyInviteUrl(this)">Скопировать приглашение Oura
-                        </button>
-                        <a class="btn btn-light" th:href="@{/patients/{id}/oura/invite(id=${patient.id})}"
-                           target="_blank">Открыть Oura</a>
-
-                        <button type="button" class="btn btn-outline-light"
-                                th:attr="data-url=@{/patients/{id}/whoop/invite(id=${patient.id})}"
-                                onclick="copyInviteUrl(this)">Скопировать приглашение WHOOP
-                        </button>
-                        <a class="btn btn-light" th:href="@{/patients/{id}/whoop/invite(id=${patient.id})}"
-                           target="_blank">Открыть WHOOP</a>
-
-                        <button type="button" class="btn btn-outline-light"
-                                th:attr="data-url=@{/patients/{id}/polar/invite(id=${patient.id})}"
-                                onclick="copyInviteUrl(this)">Скопировать приглашение POLAR
-                        </button>
-                        <a class="btn btn-light" th:href="@{/patients/{id}/polar/invite(id=${patient.id})}"
-                           target="_blank">Открыть POLAR</a>
-
+                        <!-- Приглашения, если не активен -->
+                        <div th:if="${patient.status != 'active'}" class="d-flex gap-2 flex-wrap">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-light"
+                                        th:attr="data-url=@{/patients/{id}/oura/invite(id=${patient.id})}"
+                                        onclick="copyInviteUrl(this)"><i class="bi bi-clipboard"></i> Скопировать Oura</button>
+                                <a class="btn btn-light" th:href="@{/patients/{id}/oura/invite(id=${patient.id})}" target="_blank"><i class="bi bi-box-arrow-up-right"></i></a>
+                            </div>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-light"
+                                        th:attr="data-url=@{/patients/{id}/whoop/invite(id=${patient.id})}"
+                                        onclick="copyInviteUrl(this)"><i class="bi bi-clipboard"></i> Скопировать Whoop</button>
+                                <a class="btn btn-light" th:href="@{/patients/{id}/whoop/invite(id=${patient.id})}" target="_blank"><i class="bi bi-box-arrow-up-right"></i></a>
+                            </div>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-light"
+                                        th:attr="data-url=@{/patients/{id}/polar/invite(id=${patient.id})}"
+                                        onclick="copyInviteUrl(this)"><i class="bi bi-clipboard"></i> Скопировать Polar</button>
+                                <a class="btn btn-light" th:href="@{/patients/{id}/polar/invite(id=${patient.id})}" target="_blank"><i class="bi bi-box-arrow-up-right"></i></a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
+
+
+
+    <div class="tab-content" id="providerTabsContent">
+        <!-- OURA -->
+        <div class="tab-pane fade show active"  th:if="${patient.device=='oura'}"  id="oura-pane" role="tabpanel" aria-labelledby="oura-tab">
+            <div th:if="${patient.device == 'oura' and patient.status == 'active'}" class="d-flex flex-column gap-3">
+                <div th:if="${#lists.isEmpty(ouraActivities)}" class="alert alert-info">Нет активностей за выбранный период.</div>
+                <div th:if="${not #lists.isEmpty(ouraActivities)}" class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Oura Activity</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-oura-activity','oura_activity.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-oura-activity-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-oura-activity-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-oura-activity" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Врем. метка</th>
+                                <th>Шаги</th>
+                                <th>Скор</th>
+                                <th>Актив. калории</th>
+                                <th>Средн. MET мин</th>
+                                <th>Meet daily targets</th>
+                                <th>Move every hour</th>
+                                <th>Recovery time</th>
+                                <th>Stay active</th>
+                                <th>Training freq</th>
+                                <th>Training volume</th>
+                                <th>Экв. дистанция</th>
+                                <th>High MET мин</th>
+                                <th>High время</th>
+                                <th>Неактив. алерты</th>
+                                <th>Low MET мин</th>
+                                <th>Low время</th>
+                                <th>Medium MET мин</th>
+                                <th>Medium время</th>
+                                <th>До цели (м)</th>
+                                <th>Non-wear время</th>
+                                <th>Resting время</th>
+                                <th>Sedentary MET</th>
+                                <th>Sedentary время</th>
+                                <th>Цель калории</th>
+                                <th>Цель метры</th>
+                                <th>Всего калорий</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="a : ${ouraActivities}">
+                                <td th:text="${a.day}">2025-09-24</td>
+                                <td th:text="${a.timeRecord != null ? #temporals.format(a.timeRecord, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${a.steps}">0</td>
+                                <td th:text="${a.score}">0</td>
+                                <td th:text="${a.active_calories}">0</td>
+                                <td th:text="${#numbers.formatDecimal(a.average_met_minutes, 1, 2)}">0.00</td>
+                                <td th:text="${a.meet_daily_targets}">0</td>
+                                <td th:text="${a.move_every_hour}">0</td>
+                                <td th:text="${a.recovery_time}">0</td>
+                                <td th:text="${a.stay_active}">0</td>
+                                <td th:text="${a.training_frequency}">0</td>
+                                <td th:text="${a.training_volume}">0</td>
+                                <td th:text="${a.equivalent_walking_distance}">0</td>
+                                <td th:text="${a.high_activity_met_minutes}">0</td>
+                                <td th:text="${a.high_activity_time}">0</td>
+                                <td th:text="${a.inactivity_alerts}">0</td>
+                                <td th:text="${a.low_activity_met_minutes}">0</td>
+                                <td th:text="${a.low_activity_time}">0</td>
+                                <td th:text="${a.medium_activity_met_minutes}">0</td>
+                                <td th:text="${a.medium_activity_time}">0</td>
+                                <td th:text="${a.meters_to_target}">0</td>
+                                <td th:text="${a.non_wear_time}">0</td>
+                                <td th:text="${a.resting_time}">0</td>
+                                <td th:text="${a.sedentary_met_minutes}">0</td>
+                                <td th:text="${a.sedentary_time}">0</td>
+                                <td th:text="${a.target_calories}">0</td>
+                                <td th:text="${a.target_meters}">0</td>
+                                <td th:text="${a.total_calories}">0</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(ouraHeartRate)}" class="alert alert-info">Нет данных по сердцебиению за выбранный период.</div>
+                <div th:if="${not #lists.isEmpty(ouraHeartRate)}" class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Oura Heart Rate</strong>
+                        <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-oura-hr','oura_heart_rate.csv')"><i class="bi bi-download"></i> CSV</button>
+                    </div>
+                    <div class="table-responsive scroll-shadow">
+                        <table id="tbl-oura-hr" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead><tr><th>timeRecord</th><th>bpm</th><th>source</th></tr></thead>
+                            <tbody>
+                            <tr th:each="a : ${ouraHeartRate}">
+                                <td th:text="${a.timeRecord != null ? #temporals.format(a.timeRecord, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${a.bpm}">0</td>
+                                <td th:text="${a.source}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(ouraDaylySleep)}" class="alert alert-info">Нет данных по daily sleep.</div>
+                <div th:if="${not #lists.isEmpty(ouraDaylySleep)}" class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Oura Daily Sleep</strong>
+                        <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-oura-dsleep','oura_daily_sleep.csv')"><i class="bi bi-download"></i> CSV</button>
+                    </div>
+                    <div class="table-responsive scroll-shadow">
+                        <table id="tbl-oura-dsleep" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>deep_sleep</th><th>efficiency</th><th>latency</th><th>rem_sleep</th><th>restfulness</th><th>timing</th><th>total_sleep</th>
+                                <th>day</th><th>score</th><th>timeRecord</th>
+                            </tr></thead>
+                            <tbody>
+                            <tr th:each="s : ${ouraDaylySleep}">
+                                <td th:text="${s.deep_sleep}">0</td>
+                                <td th:text="${s.efficiency}">0</td>
+                                <td th:text="${s.latency}">0</td>
+                                <td th:text="${s.rem_sleep}">0</td>
+                                <td th:text="${s.restfulness}">0</td>
+                                <td th:text="${s.timing}">0</td>
+                                <td th:text="${s.total_sleep}">0</td>
+                                <td th:text="${s.day}">2025-09-24</td>
+                                <td th:text="${s.score}">0</td>
+                                <td th:text="${s.timeRecord != null ? #temporals.format(s.timeRecord, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(ouraSpo)}" class="alert alert-info">Нет данных по SpO₂ за выбранный период.</div>
+                <div th:if="${not #lists.isEmpty(ouraSpo)}" class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Oura SpO₂</strong>
+                        <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-oura-spo','oura_spo2.csv')"><i class="bi bi-download"></i> CSV</button>
+                    </div>
+                    <div class="table-responsive scroll-shadow">
+                        <table id="tbl-oura-spo" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead><tr><th>breathing_disturbance_index</th><th>day</th><th>spo2_percentage</th></tr></thead>
+                            <tbody>
+                            <tr th:each="a : ${ouraSpo}">
+                                <td th:text="${a.breathing_disturbance_index}">0</td>
+                                <td th:text="${a.day}">0</td>
+                                <td th:text="${a.spo2_percentage}">0</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(ouraReadiness)}" class="alert alert-info">Нет данных по readiness.</div>
+                <div th:if="${not #lists.isEmpty(ouraReadiness)}" class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Oura Readiness</strong>
+                        <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-oura-ready','oura_readiness.csv')"><i class="bi bi-download"></i> CSV</button>
+                    </div>
+                    <div class="table-responsive scroll-shadow">
+                        <table id="tbl-oura-ready" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>activity_balance</th><th>body_temperature</th><th>hrv_balance</th><th>previous_day_activity</th>
+                                <th>previous_night</th><th>recovery_index</th><th>resting_heart_rate</th><th>sleep_balance</th>
+                                <th>sleep_regularity</th><th>day</th><th>score</th><th>timeRecord</th>
+                            </tr></thead>
+                            <tbody>
+                            <tr th:each="r : ${ouraReadiness}">
+                                <td th:text="${r.activity_balance}">0</td>
+                                <td th:text="${r.body_temperature}">0</td>
+                                <td th:text="${r.hrv_balance}">0</td>
+                                <td th:text="${r.previous_day_activity}">0</td>
+                                <td th:text="${r.previous_night}">0</td>
+                                <td th:text="${r.recovery_index}">0</td>
+                                <td th:text="${r.resting_heart_rate}">0</td>
+                                <td th:text="${r.sleep_balance}">0</td>
+                                <td th:text="${r.sleep_regularity}">0</td>
+                                <td th:text="${r.day}">2025-09-24</td>
+                                <td th:text="${r.score}">0</td>
+                                <td th:text="${r.timeRecord != null ? #temporals.format(r.timeRecord, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(ouraSleep)}" class="alert alert-info">Нет данных по sleep.</div>
+                <div th:if="${not #lists.isEmpty(ouraSleep)}" class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Oura Sleep Sessions</strong>
+                        <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-oura-sleep','oura_sleep.csv')"><i class="bi bi-download"></i> CSV</button>
+                    </div>
+                    <div class="table-responsive scroll-shadow">
+                        <table id="tbl-oura-sleep" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>average_breath</th><th>average_heart_rate</th><th>average_hrv</th><th>awake_time</th>
+                                <th>bedtime_end</th><th>bedtime_start</th><th>day</th><th>deep_sleep_duration</th>
+                                <th>efficiency</th><th>latency</th><th>light_sleep_duration</th><th>lowest_heart_rate</th>
+                                <th>activity_balance</th><th>body_temperature</th><th>hrv_balance</th><th>previous_day_activity</th>
+                                <th>previous_night</th><th>recovery_index</th><th>resting_heart_rate</th><th>sleep_balance</th>
+                                <th>score</th><th>temperature_deviation</th><th>readiness_score_delta</th><th>rem_sleep_duration</th>
+                                <th>restless_periods</th><th>time_in_bed</th><th>total_sleep_duration</th><th>type</th>
+                            </tr></thead>
+                            <tbody>
+                            <tr th:each="s : ${ouraSleep}">
+                                <td th:text="${s.average_breath}">0.0</td>
+                                <td th:text="${s.average_heart_rate}">0.0</td>
+                                <td th:text="${s.average_hrv}">0</td>
+                                <td th:text="${s.awake_time}">0</td>
+                                <td th:text="${s.bedtime_end != null ? #temporals.format(s.bedtime_end,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${s.bedtime_start != null ? #temporals.format(s.bedtime_start,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${s.day}">2025-09-24</td>
+                                <td th:text="${s.deep_sleep_duration}">0</td>
+                                <td th:text="${s.efficiency}">0</td>
+                                <td th:text="${s.latency}">0</td>
+                                <td th:text="${s.light_sleep_duration}">0</td>
+                                <td th:text="${s.lowest_heart_rate}">0</td>
+                                <td th:text="${s.activity_balance}">0</td>
+                                <td th:text="${s.body_temperature}">0</td>
+                                <td th:text="${s.hrv_balance}">0</td>
+                                <td th:text="${s.previous_day_activity}">0</td>
+                                <td th:text="${s.previous_night}">0</td>
+                                <td th:text="${s.recovery_index}">0</td>
+                                <td th:text="${s.resting_heart_rate}">0</td>
+                                <td th:text="${s.sleep_balance}">0</td>
+                                <td th:text="${s.score}">0</td>
+                                <td th:text="${s.temperature_deviation}">0.0</td>
+                                <td th:text="${s.readiness_score_delta}">0</td>
+                                <td th:text="${s.rem_sleep_duration}">0</td>
+                                <td th:text="${s.restless_periods}">0</td>
+                                <td th:text="${s.time_in_bed}">0</td>
+                                <td th:text="${s.total_sleep_duration}">0</td>
+                                <td th:text="${s.type}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WHOOP -->
+        <div class="tab-pane fade show active" th:if="${patient.device=='whoop'}" id="whoop-pane" role="tabpanel" aria-labelledby="whoop-tab">
+            <div th:if="${patient.device == 'whoop' and patient.status == 'active'}" class="d-flex flex-column gap-3">
+                <div th:if="${#lists.isEmpty(whoopCycles)}" class="alert alert-info">Нет данных по Whoop cycles.</div>
+                <div th:if="${not #lists.isEmpty(whoopCycles)}" class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>WHOOP Cycles</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-whoop-cycles','whoop_cycles.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-whoop-cycles-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-whoop-cycles-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-whoop-cycles" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>created_at</th><th>updated_at</th><th>start</th><th>enddate</th><th>timezone_offset</th>
+                                <th>score_state</th><th>strain</th><th>kilojoule</th><th>average_heart_rate</th><th>max_heart_rate</th>
+                            </tr></thead>
+                            <tbody>
+                            <tr th:each="c : ${whoopCycles}">
+                                <td th:text="${c.created_at != null ? #temporals.format(c.created_at,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${c.updated_at != null ? #temporals.format(c.updated_at,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${c.start != null ? #temporals.format(c.start,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${c.enddate != null ? #temporals.format(c.enddate,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${c.timezone_offset}">+05:00</td>
+                                <td th:text="${c.score_state}">SCORED</td>
+                                <td th:text="${#numbers.formatDecimal(c.strain, 1, 2)}">0.00</td>
+                                <td th:text="${#numbers.formatDecimal(c.kilojoule, 1, 2)}">0.00</td>
+                                <td th:text="${c.average_heart_rate}">0</td>
+                                <td th:text="${c.max_heart_rate}">0</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(whoopRecovery)}" class="alert alert-info">Нет данных по recovery.</div>
+                <div th:if="${not #lists.isEmpty(whoopRecovery)}" class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>WHOOP Recovery</strong>
+                        <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-whoop-recovery','whoop_recovery.csv')"><i class="bi bi-download"></i> CSV</button>
+                    </div>
+                    <div class="table-responsive scroll-shadow">
+                        <table id="tbl-whoop-recovery" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>user_calibrating</th><th>recovery_score</th><th>resting_heart_rate</th><th>hrv_rmssd_milli</th><th>spo2_percentage</th><th>skin_temp_celsius</th>
+                            </tr></thead>
+                            <tbody>
+                            <tr th:each="r : ${whoopRecovery}">
+                                <td th:text="${r.user_calibrating}">false</td>
+                                <td th:text="${#numbers.formatDecimal(r.recovery_score, 1, 2)}">0.00</td>
+                                <td th:text="${#numbers.formatDecimal(r.resting_heart_rate, 1, 2)}">0.00</td>
+                                <td th:text="${#numbers.formatDecimal(r.hrv_rmssd_milli, 1, 2)}">0.00</td>
+                                <td th:text="${#numbers.formatDecimal(r.spo2_percentage, 1, 2)}">0.00</td>
+                                <td th:text="${#numbers.formatDecimal(r.skin_temp_celsius, 1, 2)}">0.00</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(whoopSleep)}" class="alert alert-info">Нет данных по WHOOP sleep.</div>
+                <div th:if="${not #lists.isEmpty(whoopSleep)}" class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>WHOOP Sleep</strong>
+                        <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-whoop-sleep','whoop_sleep.csv')"><i class="bi bi-download"></i> CSV</button>
+                    </div>
+                    <div class="table-responsive scroll-shadow">
+                        <table id="tbl-whoop-sleep" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>start</th><th>enddate</th><th>timezone_offset</th><th>score_state</th><th>nap</th>
+                                <th>total_in_bed_time_milli</th><th>total_awake_time_milli</th><th>total_no_data_time_milli</th>
+                                <th>total_light_sleep_time_milli</th><th>total_slow_wave_sleep_time_milli</th><th>total_rem_sleep_time_milli</th>
+                                <th>sleep_cycle_count</th><th>disturbance_count</th>
+                                <th>baseline_milli</th><th>need_from_sleep_debt_milli</th><th>need_from_recent_strain_milli</th><th>need_from_recent_nap_milli</th>
+                                <th>respiratory_rate</th><th>sleep_performance_percentage</th><th>sleep_consistency_percentage</th><th>sleep_efficiency_percentage</th>
+                            </tr></thead>
+                            <tbody>
+                            <tr th:each="s : ${whoopSleep}">
+                                <td th:text="${s.start != null ? #temporals.format(s.start,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${s.enddate != null ? #temporals.format(s.enddate,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${s.timezone_offset}">+05:00</td>
+                                <td th:text="${s.score_state}">SCORED</td>
+                                <td th:text="${s.nap}">false</td>
+                                <td th:text="${s.total_in_bed_time_milli}">0</td>
+                                <td th:text="${s.total_awake_time_milli}">0</td>
+                                <td th:text="${s.total_no_data_time_milli}">0</td>
+                                <td th:text="${s.total_light_sleep_time_milli}">0</td>
+                                <td th:text="${s.total_slow_wave_sleep_time_milli}">0</td>
+                                <td th:text="${s.total_rem_sleep_time_milli}">0</td>
+                                <td th:text="${s.sleep_cycle_count}">0</td>
+                                <td th:text="${s.disturbance_count}">0</td>
+                                <td th:text="${s.baseline_milli}">0</td>
+                                <td th:text="${s.need_from_sleep_debt_milli}">0</td>
+                                <td th:text="${s.need_from_recent_strain_milli}">0</td>
+                                <td th:text="${s.need_from_recent_nap_milli}">0</td>
+                                <td th:text="${#numbers.formatDecimal(s.respiratory_rate,1,2)}">0.00</td>
+                                <td th:text="${#numbers.formatDecimal(s.sleep_performance_percentage,1,2)}">0.00</td>
+                                <td th:text="${#numbers.formatDecimal(s.sleep_consistency_percentage,1,2)}">0.00</td>
+                                <td th:text="${#numbers.formatDecimal(s.sleep_efficiency_percentage,1,2)}">0.00</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(whoopWorkout)}" class="alert alert-info">Нет данных по WHOOP workout.</div>
+                <div th:if="${not #lists.isEmpty(whoopWorkout)}" class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>WHOOP Workouts</strong>
+                        <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-whoop-workout','whoop_workout.csv')"><i class="bi bi-download"></i> CSV</button>
+                    </div>
+                    <div class="table-responsive scroll-shadow">
+                        <table id="tbl-whoop-workout" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>start</th><th>enddate</th><th>timezone_offset</th><th>score_state</th><th>sport_name</th>
+                                <th>strain</th><th>average_heart_rate</th><th>max_heart_rate</th><th>kilojoule</th><th>percent_recorded</th>
+                                <th>distance_meter</th><th>altitude_gain_meter</th><th>altitude_change_meter</th>
+                            </tr></thead>
+                            <tbody>
+                            <tr th:each="w : ${whoopWorkout}">
+                                <td th:text="${w.start != null ? #temporals.format(w.start, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${w.enddate != null ? #temporals.format(w.enddate, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${w.timezone_offset}">+05:00</td>
+                                <td th:text="${w.score_state}">SCORED</td>
+                                <td th:text="${w.sport_name}">-</td>
+                                <td th:text="${#numbers.formatDecimal(w.strain,1,2)}">0.00</td>
+                                <td th:text="${w.average_heart_rate}">0</td>
+                                <td th:text="${w.max_heart_rate}">0</td>
+                                <td th:text="${#numbers.formatDecimal(w.kilojoule,1,2)}">0.00</td>
+                                <td th:text="${#numbers.formatDecimal(w.percent_recorded,1,2)}">0.00</td>
+                                <td th:text="${#numbers.formatDecimal(w.distance_meter,1,2)}">0.00</td>
+                                <td th:text="${#numbers.formatDecimal(w.altitude_gain_meter,1,2)}">0.00</td>
+                                <td th:text="${#numbers.formatDecimal(w.altitude_change_meter,1,2)}">0.00</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-
-    <div th:if="${patient.device == 'oura' and patient.status == 'active'}" class="d-flex gap-2">
-        <div th:if="${#lists.isEmpty(ouraActivities)}" class="alert alert-info">
-            Нет активностей за выбранный период.
-        </div>
-
-        <div th:if="${not #lists.isEmpty(ouraActivities)}" class="table-responsive" style="overflow-x:auto;">
-            <table class="table table-sm table-striped table-hover align-middle">
-                <thead>
-                <tr>
-                    <th>Дата (day)</th>
-                    <th>Врем. метка</th>
-                    <th>Шаги</th>
-                    <th>Скор</th>
-                    <th>Актив. калории</th>
-                    <th>Средн. MET мин</th>
-
-                    <th>Meet daily targets</th>
-                    <th>Move every hour</th>
-                    <th>Recovery time</th>
-                    <th>Stay active</th>
-                    <th>Training freq</th>
-                    <th>Training volume</th>
-
-                    <th>Экв. дистанция</th>
-                    <th>High MET мин</th>
-                    <th>High время</th>
-                    <th>Неактив. алерты</th>
-                    <th>Low MET мин</th>
-                    <th>Low время</th>
-                    <th>Medium MET мин</th>
-                    <th>Medium время</th>
-
-                    <th>До цели (м)</th>
-                    <th>Non-wear время</th>
-                    <th>Resting время</th>
-                    <th>Sedentary MET</th>
-                    <th>Sedentary время</th>
-                    <th>Цель калории</th>
-                    <th>Цель метры</th>
-                    <th>Всего калорий</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="a : ${ouraActivities}">
-                    <td th:text="${a.day}">2025-09-24</td>
-                    <td th:text="${a.timeRecord != null ? #temporals.format(a.timeRecord, 'yyyy-MM-dd HH:mm') : '-'}">
-                        -
-                    </td>
-                    <td th:text="${a.steps}">0</td>
-                    <td th:text="${a.score}">0</td>
-                    <td th:text="${a.active_calories}">0</td>
-                    <td th:text="${#numbers.formatDecimal(a.average_met_minutes, 1, 2)}">0.00</td>
-
-                    <td th:text="${a.meet_daily_targets}">0</td>
-                    <td th:text="${a.move_every_hour}">0</td>
-                    <td th:text="${a.recovery_time}">0</td>
-                    <td th:text="${a.stay_active}">0</td>
-                    <td th:text="${a.training_frequency}">0</td>
-                    <td th:text="${a.training_volume}">0</td>
-
-                    <td th:text="${a.equivalent_walking_distance}">0</td>
-                    <td th:text="${a.high_activity_met_minutes}">0</td>
-                    <td th:text="${a.high_activity_time}">0</td>
-                    <td th:text="${a.inactivity_alerts}">0</td>
-                    <td th:text="${a.low_activity_met_minutes}">0</td>
-                    <td th:text="${a.low_activity_time}">0</td>
-                    <td th:text="${a.medium_activity_met_minutes}">0</td>
-                    <td th:text="${a.medium_activity_time}">0</td>
-
-                    <td th:text="${a.meters_to_target}">0</td>
-                    <td th:text="${a.non_wear_time}">0</td>
-                    <td th:text="${a.resting_time}">0</td>
-                    <td th:text="${a.sedentary_met_minutes}">0</td>
-                    <td th:text="${a.sedentary_time}">0</td>
-                    <td th:text="${a.target_calories}">0</td>
-                    <td th:text="${a.target_meters}">0</td>
-                    <td th:text="${a.total_calories}">0</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div th:if="${#lists.isEmpty(ouraHeartRate)}" class="alert alert-info">
-            Нет данных по сердцебиению за выбранный период.
-        </div>
-
-        <div th:if="${not #lists.isEmpty(ouraHeartRate)}" class="table-responsive" style="overflow-x:auto;">
-            <table class="table table-sm table-striped table-hover align-middle">
-                <thead>
-                <tr>
-                    <th>timeRecord</th>
-                    <th>bpm</th>
-                    <th>source</th>
-
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="a : ${ouraHeartRate}">
-                    <td th:text="${a.timeRecord != null ? #temporals.format(a.timeRecord, 'yyyy-MM-dd HH:mm') : '-'}">
-                        -
-                    </td>
-                    <td th:text="${a.bpm}">0</td>
-                    <td th:text="${a.source}">0</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div th:if="${#lists.isEmpty(ouraDaylySleep)}" class="alert alert-info">
-            Нет данных по daily sleep.
-        </div>
-
-        <div th:if="${not #lists.isEmpty(ouraDaylySleep)}" class="table-responsive" style="overflow-x:auto;">
-            <table class="table table-sm table-striped table-hover align-middle">
-                <thead>
-                <tr>
-                    <th>deep_sleep</th>
-                    <th>efficiency</th>
-                    <th>latency</th>
-                    <th>rem_sleep</th>
-                    <th>restfulness</th>
-                    <th>timing</th>
-                    <th>total_sleep</th>
-                    <th>day</th>
-                    <th>score</th>
-                    <th>timeRecord</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="s : ${ouraDaylySleep}">
-                    <td th:text="${s.deep_sleep}">0</td>
-                    <td th:text="${s.efficiency}">0</td>
-                    <td th:text="${s.latency}">0</td>
-                    <td th:text="${s.rem_sleep}">0</td>
-                    <td th:text="${s.restfulness}">0</td>
-                    <td th:text="${s.timing}">0</td>
-                    <td th:text="${s.total_sleep}">0</td>
-                    <td th:text="${s.day}">2025-09-24</td>
-                    <td th:text="${s.score}">0</td>
-                    <td th:text="${s.timeRecord != null ? #temporals.format(s.timeRecord, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div th:if="${#lists.isEmpty(ouraSpo)}" class="alert alert-info">
-            Нет данных по Spo2 за выбранный период.
-        </div>
-
-        <div th:if="${not #lists.isEmpty(ouraSpo)}" class="table-responsive" style="overflow-x:auto;">
-            <table class="table table-sm table-striped table-hover align-middle">
-                <thead>
-                <tr>
-                    <th>breathing_disturbance_index</th>
-                    <th>day</th>
-                    <th>spo2_percentage</th>
-
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="a : ${ouraSpo}">
-                    <td th:text="${a.breathing_disturbance_index}">0</td>
-                    <td th:text="${a.day}">0</td>
-                    <td th:text="${a.spo2_percentage}">0</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-        <div th:if="${#lists.isEmpty(ouraReadiness)}" class="alert alert-info">
-            Нет данных по readiness.
-        </div>
-
-        <div th:if="${not #lists.isEmpty(ouraReadiness)}" class="table-responsive" style="overflow-x:auto;">
-            <table class="table table-sm table-striped table-hover align-middle">
-                <thead>
-                <tr>
-                    <th>activity_balance</th>
-                    <th>body_temperature</th>
-                    <th>hrv_balance</th>
-                    <th>previous_day_activity</th>
-                    <th>previous_night</th>
-                    <th>recovery_index</th>
-                    <th>resting_heart_rate</th>
-                    <th>sleep_balance</th>
-                    <th>sleep_regularity</th>
-                    <th>day</th>
-                    <th>score</th>
-                    <th>timeRecord</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="r : ${ouraReadiness}">
-                    <td th:text="${r.activity_balance}">0</td>
-                    <td th:text="${r.body_temperature}">0</td>
-                    <td th:text="${r.hrv_balance}">0</td>
-                    <td th:text="${r.previous_day_activity}">0</td>
-                    <td th:text="${r.previous_night}">0</td>
-                    <td th:text="${r.recovery_index}">0</td>
-                    <td th:text="${r.resting_heart_rate}">0</td>
-                    <td th:text="${r.sleep_balance}">0</td>
-                    <td th:text="${r.sleep_regularity}">0</td>
-                    <td th:text="${r.day}">2025-09-24</td>
-                    <td th:text="${r.score}">0</td>
-                    <td th:text="${r.timeRecord != null ? #temporals.format(r.timeRecord, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-        <div th:if="${#lists.isEmpty(ouraSleep)}" class="alert alert-info">
-            Нет данных по sleep.
-        </div>
-
-        <div th:if="${not #lists.isEmpty(ouraSleep)}" class="table-responsive" style="overflow-x:auto;">
-            <table class="table table-sm table-striped table-hover align-middle">
-                <thead>
-                <tr>
-                    <th>average_breath</th>
-                    <th>average_heart_rate</th>
-                    <th>average_hrv</th>
-                    <th>awake_time</th>
-                    <th>bedtime_end</th>
-                    <th>bedtime_start</th>
-                    <th>day</th>
-                    <th>deep_sleep_duration</th>
-                    <th>efficiency</th>
-                    <th>latency</th>
-                    <th>light_sleep_duration</th>
-                    <th>lowest_heart_rate</th>
-                    <th>activity_balance</th>
-                    <th>body_temperature</th>
-                    <th>hrv_balance</th>
-                    <th>previous_day_activity</th>
-                    <th>previous_night</th>
-                    <th>recovery_index</th>
-                    <th>resting_heart_rate</th>
-                    <th>sleep_balance</th>
-                    <th>score</th>
-                    <th>temperature_deviation</th>
-                    <th>readiness_score_delta</th>
-                    <th>rem_sleep_duration</th>
-                    <th>restless_periods</th>
-                    <th>time_in_bed</th>
-                    <th>total_sleep_duration</th>
-                    <th>type</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="s : ${ouraSleep}">
-                    <td th:text="${s.average_breath}">0.0</td>
-                    <td th:text="${s.average_heart_rate}">0.0</td>
-                    <td th:text="${s.average_hrv}">0</td>
-                    <td th:text="${s.awake_time}">0</td>
-                    <td th:text="${s.bedtime_end != null ? #temporals.format(s.bedtime_end,'yyyy-MM-dd HH:mm') : '-'}">-</td>
-                    <td th:text="${s.bedtime_start != null ? #temporals.format(s.bedtime_start,'yyyy-MM-dd HH:mm') : '-'}">-</td>
-                    <td th:text="${s.day}">2025-09-24</td>
-                    <td th:text="${s.deep_sleep_duration}">0</td>
-                    <td th:text="${s.efficiency}">0</td>
-                    <td th:text="${s.latency}">0</td>
-                    <td th:text="${s.light_sleep_duration}">0</td>
-                    <td th:text="${s.lowest_heart_rate}">0</td>
-                    <td th:text="${s.activity_balance}">0</td>
-                    <td th:text="${s.body_temperature}">0</td>
-                    <td th:text="${s.hrv_balance}">0</td>
-                    <td th:text="${s.previous_day_activity}">0</td>
-                    <td th:text="${s.previous_night}">0</td>
-                    <td th:text="${s.recovery_index}">0</td>
-                    <td th:text="${s.resting_heart_rate}">0</td>
-                    <td th:text="${s.sleep_balance}">0</td>
-                    <td th:text="${s.score}">0</td>
-                    <td th:text="${s.temperature_deviation}">0.0</td>
-                    <td th:text="${s.readiness_score_delta}">0</td>
-                    <td th:text="${s.rem_sleep_duration}">0</td>
-                    <td th:text="${s.restless_periods}">0</td>
-                    <td th:text="${s.time_in_bed}">0</td>
-                    <td th:text="${s.total_sleep_duration}">0</td>
-                    <td th:text="${s.type}">-</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-
-    </div>
-
-    <div th:if="${patient.device == 'whoop' and patient.status == 'active'}" class="d-flex gap-2">
-        <div th:if="${#lists.isEmpty(whoopCycles)}" class="alert alert-info">
-            Нет данных по Whoop cycles.
-        </div>
-
-        <div th:if="${not #lists.isEmpty(whoopCycles)}" class="table-responsive" style="overflow-x:auto;">
-            <table class="table table-sm table-striped table-hover align-middle">
-                <thead>
-                <tr>
-                    <th>created_at</th>
-                    <th>updated_at</th>
-                    <th>start</th>
-                    <th>enddate</th>
-                    <th>timezone_offset</th>
-                    <th>score_state</th>
-                    <th>strain</th>
-                    <th>kilojoule</th>
-                    <th>average_heart_rate</th>
-                    <th>max_heart_rate</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="c : ${whoopCycles}">
-                    <td th:text="${c.created_at != null ? #temporals.format(c.created_at,'yyyy-MM-dd HH:mm') : '-'}">-</td>
-                    <td th:text="${c.updated_at != null ? #temporals.format(c.updated_at,'yyyy-MM-dd HH:mm') : '-'}">-</td>
-                    <td th:text="${c.start != null ? #temporals.format(c.start,'yyyy-MM-dd HH:mm') : '-'}">-</td>
-                    <td th:text="${c.enddate != null ? #temporals.format(c.enddate,'yyyy-MM-dd HH:mm') : '-'}">-</td>
-                    <td th:text="${c.timezone_offset}">+05:00</td>
-                    <td th:text="${c.score_state}">SCORED</td>
-                    <td th:text="${#numbers.formatDecimal(c.strain, 1, 2)}">0.00</td>
-                    <td th:text="${#numbers.formatDecimal(c.kilojoule, 1, 2)}">0.00</td>
-                    <td th:text="${c.average_heart_rate}">0</td>
-                    <td th:text="${c.max_heart_rate}">0</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-        <div th:if="${#lists.isEmpty(whoopRecovery)}" class="alert alert-info">
-            Нет данных по recovery.
-        </div>
-
-        <div th:if="${not #lists.isEmpty(whoopRecovery)}" class="table-responsive" style="overflow-x:auto;">
-            <table class="table table-sm table-striped table-hover align-middle">
-                <thead>
-                <tr>
-                    <th>user_calibrating</th>
-                    <th>recovery_score</th>
-                    <th>resting_heart_rate</th>
-                    <th>hrv_rmssd_milli</th>
-                    <th>spo2_percentage</th>
-                    <th>skin_temp_celsius</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="r : ${whoopRecovery}">
-                    <td th:text="${r.user_calibrating}">false</td>
-                    <td th:text="${#numbers.formatDecimal(r.recovery_score, 1, 2)}">0.00</td>
-                    <td th:text="${#numbers.formatDecimal(r.resting_heart_rate, 1, 2)}">0.00</td>
-                    <td th:text="${#numbers.formatDecimal(r.hrv_rmssd_milli, 1, 2)}">0.00</td>
-                    <td th:text="${#numbers.formatDecimal(r.spo2_percentage, 1, 2)}">0.00</td>
-                    <td th:text="${#numbers.formatDecimal(r.skin_temp_celsius, 1, 2)}">0.00</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-        <div th:if="${#lists.isEmpty(whoopSleep)}" class="alert alert-info">
-            Нет данных по WHOOP sleep.
-        </div>
-
-        <div th:if="${not #lists.isEmpty(whoopSleep)}" class="table-responsive" style="overflow-x:auto;">
-            <table class="table table-sm table-striped table-hover align-middle">
-                <thead>
-                <tr>
-                    <th>start</th>
-                    <th>enddate</th>
-                    <th>timezone_offset</th>
-                    <th>score_state</th>
-                    <th>nap</th>
-
-                    <th>total_in_bed_time_milli</th>
-                    <th>total_awake_time_milli</th>
-                    <th>total_no_data_time_milli</th>
-                    <th>total_light_sleep_time_milli</th>
-                    <th>total_slow_wave_sleep_time_milli</th>
-                    <th>total_rem_sleep_time_milli</th>
-                    <th>sleep_cycle_count</th>
-                    <th>disturbance_count</th>
-
-                    <th>baseline_milli</th>
-                    <th>need_from_sleep_debt_milli</th>
-                    <th>need_from_recent_strain_milli</th>
-                    <th>need_from_recent_nap_milli</th>
-
-                    <th>respiratory_rate</th>
-                    <th>sleep_performance_percentage</th>
-                    <th>sleep_consistency_percentage</th>
-                    <th>sleep_efficiency_percentage</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="s : ${whoopSleep}">
-                    <td th:text="${s.start != null ? #temporals.format(s.start,'yyyy-MM-dd HH:mm') : '-'}">-</td>
-                    <td th:text="${s.enddate != null ? #temporals.format(s.enddate,'yyyy-MM-dd HH:mm') : '-'}">-</td>
-                    <td th:text="${s.timezone_offset}">+05:00</td>
-                    <td th:text="${s.score_state}">SCORED</td>
-                    <td th:text="${s.nap}">false</td>
-
-                    <td th:text="${s.total_in_bed_time_milli}">0</td>
-                    <td th:text="${s.total_awake_time_milli}">0</td>
-                    <td th:text="${s.total_no_data_time_milli}">0</td>
-                    <td th:text="${s.total_light_sleep_time_milli}">0</td>
-                    <td th:text="${s.total_slow_wave_sleep_time_milli}">0</td>
-                    <td th:text="${s.total_rem_sleep_time_milli}">0</td>
-                    <td th:text="${s.sleep_cycle_count}">0</td>
-                    <td th:text="${s.disturbance_count}">0</td>
-
-                    <td th:text="${s.baseline_milli}">0</td>
-                    <td th:text="${s.need_from_sleep_debt_milli}">0</td>
-                    <td th:text="${s.need_from_recent_strain_milli}">0</td>
-                    <td th:text="${s.need_from_recent_nap_milli}">0</td>
-
-                    <td th:text="${#numbers.formatDecimal(s.respiratory_rate,1,2)}">0.00</td>
-                    <td th:text="${#numbers.formatDecimal(s.sleep_performance_percentage,1,2)}">0.00</td>
-                    <td th:text="${#numbers.formatDecimal(s.sleep_consistency_percentage,1,2)}">0.00</td>
-                    <td th:text="${#numbers.formatDecimal(s.sleep_efficiency_percentage,1,2)}">0.00</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-        <div th:if="${#lists.isEmpty(whoopWorkout)}" class="alert alert-info">
-            Нет данных по WHOOP workout.
-        </div>
-
-        <div th:if="${not #lists.isEmpty(whoopWorkout)}" class="table-responsive" style="overflow-x:auto;">
-            <table class="table table-sm table-striped table-hover align-middle">
-                <thead>
-                <tr>
-                    <th>start</th>
-                    <th>enddate</th>
-                    <th>timezone_offset</th>
-                    <th>score_state</th>
-                    <th>sport_name</th>
-                    <th>strain</th>
-                    <th>average_heart_rate</th>
-                    <th>max_heart_rate</th>
-                    <th>kilojoule</th>
-                    <th>percent_recorded</th>
-                    <th>distance_meter</th>
-                    <th>altitude_gain_meter</th>
-                    <th>altitude_change_meter</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="w : ${whoopWorkout}">
-                    <td th:text="${w.start != null ? #temporals.format(w.start, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
-                    <td th:text="${w.enddate != null ? #temporals.format(w.enddate, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
-                    <td th:text="${w.timezone_offset}">+05:00</td>
-                    <td th:text="${w.score_state}">SCORED</td>
-                    <td th:text="${w.sport_name}">-</td>
-                    <td th:text="${#numbers.formatDecimal(w.strain,1,2)}">0.00</td>
-                    <td th:text="${w.average_heart_rate}">0</td>
-                    <td th:text="${w.max_heart_rate}">0</td>
-                    <td th:text="${#numbers.formatDecimal(w.kilojoule,1,2)}">0.00</td>
-                    <td th:text="${#numbers.formatDecimal(w.percent_recorded,1,2)}">0.00</td>
-                    <td th:text="${#numbers.formatDecimal(w.distance_meter,1,2)}">0.00</td>
-                    <td th:text="${#numbers.formatDecimal(w.altitude_gain_meter,1,2)}">0.00</td>
-                    <td th:text="${#numbers.formatDecimal(w.altitude_change_meter,1,2)}">0.00</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-
-    </div>
-
-
-    <form id="syncForm"
-          th:action="@{/patients/{id}/{provider}/sync(id=${patient.id}, provider='oura')}"
-          method="post" class="d-none">
+    <!-- Скрытая форма sync (оставлена как есть) -->
+    <form id="syncForm" th:action="@{/patients/{id}/{provider}/sync(id=${patient.id}, provider='oura')}" method="post" class="d-none">
         <input type="hidden" name="type" id="syncType" value="sleep_daily">
         <input type="hidden" name="days" id="syncDays" value="7">
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
@@ -653,39 +552,29 @@
             <div class="toast-body">—</div>
         </div>
     </div>
-
 </div>
 
-<!-- Chart.js -->
+<!-- Vendor JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4"></script>
 
 <script>
+    // Копирование приглашений с тостами
     function copyInviteUrl(btn) {
         const url = btn.getAttribute('data-url');
         if (!url) return;
-        btn.disabled = true;
+        btn.disabled = true; btn.classList.add('disabled');
         fetch(url, {method: 'GET', credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
-            .then(r => {
-                if (!r.ok) throw new Error('HTTP ' + r.status);
-                return r.text();
-            })
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
             .then(link => navigator.clipboard.writeText(link)
                 .then(() => showInviteToast('Ссылка приглашения скопирована.'))
-                .catch(() => {
-                    prompt('Скопируйте ссылку вручную:', link);
-                }))
+                .catch(() => { prompt('Скопируйте ссылку вручную:', link); }))
             .catch(() => showInviteToast('Не удалось получить ссылку.'))
-            .finally(() => {
-                btn.disabled = false;
-            });
+            .finally(() => { btn.disabled = false; btn.classList.remove('disabled'); });
     }
-
     function showInviteToast(message) {
         const el = document.getElementById('inviteToast');
-        if (!el) {
-            alert(message);
-            return;
-        }
+        if (!el) { alert(message); return; }
         el.querySelector('.toast-body').textContent = message;
         const t = new bootstrap.Toast(el, {delay: 2500});
         t.show();
@@ -698,7 +587,6 @@
         const values = nodes.map(n => Number(n.dataset.v)).filter(v => !Number.isNaN(v));
         return {labels, values};
     }
-
     function makeSparkline(canvasId, labels, values, opts = {}) {
         const el = document.getElementById(canvasId);
         if (!el || !values || values.length === 0) return;
@@ -707,25 +595,17 @@
             data: {labels, datasets: [{data: values, fill: false, borderWidth: 2, tension: 0.35, pointRadius: 0}]},
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: {
-                    legend: {display: false},
-                    tooltip: {callbacks: {label: (c) => (opts.unit ? `${c.parsed.y} ${opts.unit}` : `${c.parsed.y}`)}}
-                },
+                plugins: { legend: {display: false}, tooltip: {callbacks: {label: (c) => (opts.unit ? `${c.parsed.y} ${opts.unit}` : `${c.parsed.y}`)}} },
                 scales: {x: {display: false}, y: {display: false, suggestedMin: opts.min, suggestedMax: opts.max}},
                 elements: {line: {borderJoinStyle: 'round', borderCapStyle: 'round'}}
             }
         });
     }
-
     // HR графики
     (function () {
         const {labels, values} = collectDataset('hr-point');
-        if (values.length) {
-            makeSparkline('hrSpark', labels, values, {});
-            makeSparkline('hrSparkBig', labels, values, {});
-        }
+        if (values.length) { makeSparkline('hrSpark', labels, values, {}); }
     })();
-
     // SpO2 графики
     (function () {
         const {labels, values} = collectDataset('spo2-point');
@@ -734,28 +614,46 @@
             makeSparkline('spo2SparkBig', labels, values, {unit: '%', min, max});
         }
     })();
-
-    // Мини-спарклайны для шагов/готовности/сна из суточных сводок
+    // Мини-спарклайны для шагов/готовности/сна
     (function () {
         const steps = Array.from(document.querySelectorAll('.steps-point'));
         if (steps.length) {
-            makeSparkline('stepsSpark',
-                steps.map(n => n.dataset.t),
-                steps.map(n => Number(n.dataset.v)));
+            makeSparkline('stepsSpark', steps.map(n => n.dataset.t), steps.map(n => Number(n.dataset.v)));
         }
         const ready = Array.from(document.querySelectorAll('.readiness-point'));
         if (ready.length) {
-            makeSparkline('readinessSpark',
-                ready.map(n => n.dataset.t),
-                ready.map(n => Number(n.dataset.v)));
+            makeSparkline('readinessSpark', ready.map(n => n.dataset.t), ready.map(n => Number(n.dataset.v)));
         }
         const sleep = Array.from(document.querySelectorAll('.sleep-point'));
         if (sleep.length) {
-            makeSparkline('sleepSpark',
-                sleep.map(n => n.dataset.t),
-                sleep.map(n => Number(n.dataset.v)));
+            makeSparkline('sleepSpark', sleep.map(n => n.dataset.t), sleep.map(n => Number(n.dataset.v)));
         }
     })();
+
+    // Экспорт таблицы в CSV (простая версия по innerText)
+    function exportTable(selector, filename = 'export.csv') {
+        const table = document.querySelector(selector);
+        if (!table) return;
+        const rows = Array.from(table.querySelectorAll('tr')).map(tr => Array.from(tr.children).map(td => {
+            let t = td.innerText.replaceAll('\n', ' ').trim();
+            if (t.includes('"') || t.includes(',') || t.includes(';')) t = '"' + t.replaceAll('"','""') + '"';
+            return t;
+        }).join(','));
+        const blob = new Blob([rows.join('\n')], {type: 'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 500);
+    }
+
+    // Переключатель плотности строк (compact mode)
+    document.querySelectorAll('[data-density-toggle]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const wrap = document.querySelector(btn.getAttribute('data-target'));
+            if (!wrap) return;
+            wrap.classList.toggle('table-compact');
+            btn.classList.toggle('active');
+        });
+    });
 </script>
 </body>
 </html>

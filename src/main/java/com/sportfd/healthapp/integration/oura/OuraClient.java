@@ -365,7 +365,7 @@ public class OuraClient implements ProviderClient {
     @Override
     public void syncAll(Long pid, OffsetDateTime from, OffsetDateTime to) {
         System.out.println("nachaloooo 1");
-            syncHeartRate(pid, from, to);
+            syncHeartRate(pid, to, to);
         System.out.println("nachaloooo 2");
             syncSleep(pid, from, to);
         System.out.println("nachaloooo 3");
@@ -434,8 +434,8 @@ public class OuraClient implements ProviderClient {
     @Override
     public int syncHeartRate(Long pid, OffsetDateTime from, OffsetDateTime to) {
         String base = UriComponentsBuilder.fromPath("/v2/usercollection/heartrate")
-                .queryParam("start_date", from.toLocalDate().toString())
-                .queryParam("end_date",   to.toLocalDate().toString())
+                .queryParam("start_date", from.toLocalDateTime().toString())
+                .queryParam("end_date",   to.toLocalDateTime().toString())
                 .build().encode().toUriString();
         Connection c = requireConn(pid);
         return paged(base, from, to, c, node -> {
@@ -482,6 +482,7 @@ public class OuraClient implements ProviderClient {
                 ouraSpo.setBreathing_disturbance_index(breathing_disturbance_index);
                 ouraSpo.setDay(day);
                 ouraSpo.setSpo2_percentage(average);
+                ouraSpo.setPatient_id(pid);
 
                 ouraSpoRepository.save(ouraSpo);
             }

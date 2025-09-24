@@ -6,6 +6,9 @@ import com.sportfd.healthapp.repo.*;
 import com.sportfd.healthapp.integration.oura.dto.OuraTokenResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -120,7 +123,8 @@ public class OuraService {
     }
 
     public List<OuraHeartRate> getOuraHeartRate(Long pid){
-        return ouraHeartRateRepository.findByPatientId(pid);
+        Pageable top10 = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "timeRecord"));
+        return ouraHeartRateRepository.findByPatientId(pid, top10);
     }
 
     public List<OuraReadiness> getOuraReadiness(Long pid){
