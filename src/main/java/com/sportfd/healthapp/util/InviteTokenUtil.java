@@ -64,6 +64,8 @@ public class InviteTokenUtil {
             partUrl = "/oauth/oura/start?t=";
         } else if (provider.equals("whoop")) {
             partUrl = "/oauth/whoop/start?t=";
+        } else if (provider.equals("polar")) {
+            partUrl = "/oauth/polar/start?t=";
         }
         return baseUrl + partUrl + encT;
     }

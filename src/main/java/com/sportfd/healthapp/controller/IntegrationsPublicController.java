@@ -22,8 +22,9 @@ public class IntegrationsPublicController {
 
 
     @Value("${app.oura.scopes:daily workout heartrate spo2 session}") private String ouraScopes;
-    @Value("${app.whoop.scopes:offline read:profile read:sleep read:recovery read:workout read:cycles read:body_measurement}")
-    private String whoopScopes;
+    @Value("${app.whoop.scopes:offline read:profile read:sleep read:recovery read:workout read:cycles read:body_measurement}") private String whoopScopes;
+    @Value("app.polar.scopes")     private String polarScopes;
+
     @GetMapping("/oauth/{provider}/start")
     public String start(@PathVariable String provider, @RequestParam("t") String token, HttpSession session, Model model) {
         Long pid = invites.verifyAndGetPatientId(token);
@@ -37,6 +38,8 @@ public class IntegrationsPublicController {
             return "patient-oura-start";
         } else if (providerUpperCase.equals("WHOOP")) {
             return "patient-whoop-start";
+        } else if (providerUpperCase.equals("POLAR")) {
+            return "patient-polar-start";
         }
         return "patient-oura-start";
     }
@@ -53,9 +56,9 @@ public class IntegrationsPublicController {
         String scopes = switch (prov) {
             case OURA -> ouraScopes;
             case WHOOP ->  whoopScopes;
+            case POLAR -> polarScopes;
             default -> "";
         };
-        // redirectUri берётся из клиента (внутри)
         String url = clients.get(prov).buildAuthorizeUrl(state, scopes, null);
         return "redirect:" + url;
     }

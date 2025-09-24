@@ -1,11 +1,9 @@
 package com.sportfd.healthapp.integration.oura;
 
-import com.sportfd.healthapp.model.Connection;
-import com.sportfd.healthapp.model.Patient;
+import com.sportfd.healthapp.model.*;
 import com.sportfd.healthapp.model.enums.Provider;
-import com.sportfd.healthapp.repo.ConnectionRepository;
+import com.sportfd.healthapp.repo.*;
 import com.sportfd.healthapp.integration.oura.dto.OuraTokenResponse;
-import com.sportfd.healthapp.repo.PatientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -19,6 +17,8 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -30,6 +30,17 @@ public class OuraService {
     private final RestTemplate rest;
     private final ConnectionRepository conns;
     private final PatientRepository patientRepository;
+
+
+    private final OuraSleepRepository ouraSleepRepository;
+    private final OuraDaylySleepRepository ouraDaylySleepRepository;
+    private final OuraHeartRateRepository ouraHeartRateRepository;
+    private final OuraSpoRepository ouraSpoRepository;
+    private final OuraReadinessRepository ouraReadinessRepository;
+    private final OuraActivityRepository ouraActivityRepository;
+
+
+
     @Value("${app.oura.client-id}")    private String clientId;
     @Value("${app.oura.client-secret}") private String clientSecret;
     @Value("${app.oura.redirect-uri}")  private String redirectUri;
@@ -94,13 +105,33 @@ public class OuraService {
         c.setProvider(PROVIDER);
         c.setAccessToken(res.getAccessToken());
         c.setRefreshToken(res.getRefreshToken());
-        String scope = res.getScope();
-        System.out.println("KRIS scope " + scope);
         c.setScope(res.getScope());
-        // expires_in (сек) -> OffsetDateTime (UTC)
         var exp = OffsetDateTime.ofInstant(Instant.now().plusSeconds(res.getExpiresIn()), ZoneOffset.UTC);
         c.setExpiresAt(exp);
         conns.save(c);
+    }
+
+    public List<OuraActivity> getOuraActivity(Long pid){
+        return ouraActivityRepository.findByPatientId(pid);
+    }
+
+    public List<OuraDaylySleep> getOuraDaylySleep(Long pid){
+        return ouraDaylySleepRepository.findByPatientId(pid);
+    }
+
+    public List<OuraHeartRate> getOuraHeartRate(Long pid){
+        return ouraHeartRateRepository.findByPatientId(pid);
+    }
+
+    public List<OuraReadiness> getOuraReadiness(Long pid){
+        return ouraReadinessRepository.findByPatientId(pid);
+    }
+
+    public List<OuraSleep> getOuraSleep(Long pid){
+        return ouraSleepRepository.findByPatientId(pid);
+    }
+    public List<OuraSpo> getOuraSpo(Long pid){
+        return ouraSpoRepository.findByPatientId(pid);
     }
 
 

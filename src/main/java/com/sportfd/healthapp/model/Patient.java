@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Setter
 @Getter
 @Entity @Table(name="patients")
@@ -16,6 +18,23 @@ public class Patient {
     private Long doctorId;
     private String status;
     private String device;
+    private LocalDate birthDate;
+    private String gender;
+    private String jsonData;
+    private double HeightCm;
+    private double WeightKg;
+    private short RhrBpm;
+    private short HrvRmssdMs;
+    private String BodyMeasurementJson;
     public Patient() {}
+
+
+    public void setSex(String gender) {
+        this.gender = gender;
+    }
+
+    public void setProfileJson(String string) {
+        this.jsonData = string;
+    }
 
 }

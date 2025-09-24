@@ -1,6 +1,8 @@
 package com.sportfd.healthapp.service;
 
 import com.sportfd.healthapp.dto.PatientCreateRequest;
+import com.sportfd.healthapp.integration.oura.OuraClient;
+import com.sportfd.healthapp.integration.oura.OuraService;
 import com.sportfd.healthapp.model.Patient;
 import com.sportfd.healthapp.model.Users;
 import com.sportfd.healthapp.repo.PatientRepository;
@@ -16,6 +18,8 @@ public class PatientService {
 
     private final PatientRepository patientRepository;
     private final UserRepository usersRepository;
+
+
 
     @Transactional
     public Patient createPatient(PatientCreateRequest req, UserDetails currentUser) {

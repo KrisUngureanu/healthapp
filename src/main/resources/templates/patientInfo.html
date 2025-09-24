@@ -7,33 +7,93 @@
     <title>Пациент</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        :root{ --gradA:#4364f7; --gradB:#6fb1fc; }
-
-        .btn-gradient{ background:linear-gradient(90deg,var(--gradA),var(--gradB)); border:none; color:#fff }
-        .btn-gradient:hover{ background:linear-gradient(90deg,var(--gradB),var(--gradA)); color:#fff }
-        .card{ border:none; border-radius:1rem; box-shadow:0 6px 20px rgba(0,0,0,.15) }
-        .card-header{ border-radius:1rem 1rem 0 0; background:linear-gradient(90deg,var(--gradA),var(--gradB)); color:#fff }
-        .stat{ border-radius:.75rem; background:#f7f9ff; padding:1rem; display:flex; align-items:center; gap:.75rem; min-height:90px }
-        .stat .num{ font-weight:700; font-size:1.25rem }
-
-        /* табы — контрастнее */
-        .nav-pills{ gap:.5rem }
-        .nav-pills .nav-link{
-            color:#2945e3; background:#f3f6ff; border:1px solid #dfe6ff;
-            border-radius:2rem; transition:.2s;
-        }
-        .nav-pills .nav-link:hover{ color:#1c2fd1; background:#eaf0ff; border-color:#d3dcff; }
-        .nav-pills .nav-link.active{
-            color:#fff !important; background:linear-gradient(90deg,var(--gradA),var(--gradB)) !important;
-            border-color:transparent; box-shadow:0 6px 16px rgba(67,100,247,.25);
+        :root {
+            --gradA: #4364f7;
+            --gradB: #6fb1fc;
         }
 
-        /* спарклайны */
-        .spark-wrap{ height:60px; margin-top:.35rem }
-        .spark-wrap canvas{ width:100% !important; height:100% !important; }
+        .btn-gradient {
+            background: linear-gradient(90deg, var(--gradA), var(--gradB));
+            border: none;
+            color: #fff
+        }
 
-        /* мелочи */
-        .actions .btn{ white-space:nowrap }
+        .btn-gradient:hover {
+            background: linear-gradient(90deg, var(--gradB), var(--gradA));
+            color: #fff
+        }
+
+        .card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, .15)
+        }
+
+        .card-header {
+            border-radius: 1rem 1rem 0 0;
+            background: linear-gradient(90deg, var(--gradA), var(--gradB));
+            color: #fff
+        }
+
+        .stat {
+            border-radius: .75rem;
+            background: #f7f9ff;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            min-height: 90px
+        }
+
+        .stat .num {
+            font-weight: 700;
+            font-size: 1.25rem
+        }
+
+        /* табы: контраст и читаемость */
+        .nav-pills {
+            gap: .5rem
+        }
+
+        .nav-pills .nav-link {
+            color: #2945e3;
+            background: #f3f6ff;
+            border: 1px solid #dfe6ff;
+            border-radius: 2rem;
+            transition: .2s;
+        }
+
+        .nav-pills .nav-link:hover {
+            color: #1c2fd1;
+            background: #eaf0ff;
+            border-color: #d3dcff;
+        }
+
+        .nav-pills .nav-link.active {
+            color: #fff !important;
+            background: linear-gradient(90deg, var(--gradA), var(--gradB)) !important;
+            border-color: transparent;
+            box-shadow: 0 6px 16px rgba(67, 100, 247, .25);
+        }
+
+        /* графики */
+        .spark-wrap {
+            height: 60px;
+            margin-top: .35rem
+        }
+
+        .spark-wrap canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .spark-wrap.big {
+            height: 120px
+        }
+
+        .actions .btn {
+            white-space: nowrap
+        }
     </style>
 </head>
 <body>
@@ -51,400 +111,529 @@
             </div>
 
             <div class="d-flex align-items-center gap-3 actions">
-
-                <!-- Бейдж статуса -->
+                <!-- Статус -->
                 <span class="badge"
                       th:text="${st != '' ? patient.status : '—'}"
                       th:classappend="${st == 'active'} ? ' bg-success' : (st == 'critical' ? ' bg-danger' : ' bg-secondary')">—</span>
 
-                <!-- Действия для врача/админа -->
+                <!-- Действия врача/админа -->
                 <div sec:authorize="hasAnyRole('DOCTOR','ADMIN')" class="d-flex align-items-center gap-2 flex-wrap">
 
-                    <!-- Массовая синхронизация -->
-                    <form th:action="@{/patients/{id}/integrations/{provider}/syncAll(id=${patient.id}, provider='oura')}"
-                          method="post" class="d-flex gap-2 mb-0">
-                        <input type="number" min="1" max="30" name="days" value="7" class="form-control" style="max-width:110px">
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                        <button class="btn btn-gradient">Синхронизировать Oura</button>
-                    </form>
+                    <!-- Отключения -->
+                    <form th:if="${patient.status == 'active' and patient.device == 'oura'}"
 
-                    <form th:action="@{/patients/{id}/integrations/{provider}/syncAll(id=${patient.id}, provider='whoop')}"
-                          method="post" class="d-flex gap-2 mb-0">
-                        <input type="number" min="1" max="30" name="days" value="7" class="form-control" style="max-width:110px">
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                        <button class="btn btn-gradient">Синхронизировать WHOOP</button>
-                    </form>
-
-                    <!-- Отключение / Приглашения -->
-                    <form th:if="${st == 'active'}"
                           th:action="@{/patients/{id}/{provider}/disconnect(id=${patient.id}, provider='oura')}"
                           method="post" class="mb-0">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                         <button class="btn btn-outline-light">Отключить Oura</button>
                     </form>
-                    <form th:if="${st == 'active'}"
+
+                    <form th:if="${patient.status == 'active' and patient.device == 'whoop'}"
+
                           th:action="@{/patients/{id}/{provider}/disconnect(id=${patient.id}, provider='whoop')}"
                           method="post" class="mb-0">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                        <button class="btn btn-outline-danger">Отключить WHOOP</button>
+                        <button class="btn btn-outline-light">Отключить Whoop</button>
                     </form>
 
-                    <div th:if="${st != 'active'}" class="d-flex gap-2">
+                    <form th:if="${st == 'active'}"
+                          th:action="@{/patients/{id}/integrations/oura/syncAll(id=${patient.id})}"
+                          method="post" class="mb-0">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button class="btn btn-outline-light">Получить данные</button>
+                    </form>
+
+
+                    <div th:if="${patient.status != 'active'}" class="d-flex gap-2">
                         <button type="button" class="btn btn-outline-light"
                                 th:attr="data-url=@{/patients/{id}/oura/invite(id=${patient.id})}"
-                                onclick="copyInviteUrl(this)">Скопировать приглашение Oura</button>
-                        <a class="btn btn-light" th:href="@{/patients/{id}/oura/invite(id=${patient.id})}" target="_blank">Открыть Oura</a>
+                                onclick="copyInviteUrl(this)">Скопировать приглашение Oura
+                        </button>
+                        <a class="btn btn-light" th:href="@{/patients/{id}/oura/invite(id=${patient.id})}"
+                           target="_blank">Открыть Oura</a>
 
                         <button type="button" class="btn btn-outline-light"
                                 th:attr="data-url=@{/patients/{id}/whoop/invite(id=${patient.id})}"
-                                onclick="copyInviteUrl(this)">Скопировать приглашение WHOOP</button>
-                        <a class="btn btn-light" th:href="@{/patients/{id}/whoop/invite(id=${patient.id})}" target="_blank">Открыть WHOOP</a>
-                    </div>
+                                onclick="copyInviteUrl(this)">Скопировать приглашение WHOOP
+                        </button>
+                        <a class="btn btn-light" th:href="@{/patients/{id}/whoop/invite(id=${patient.id})}"
+                           target="_blank">Открыть WHOOP</a>
 
-                </div>
-            </div>
-        </div>
+                        <button type="button" class="btn btn-outline-light"
+                                th:attr="data-url=@{/patients/{id}/polar/invite(id=${patient.id})}"
+                                onclick="copyInviteUrl(this)">Скопировать приглашение POLAR
+                        </button>
+                        <a class="btn btn-light" th:href="@{/patients/{id}/polar/invite(id=${patient.id})}"
+                           target="_blank">Открыть POLAR</a>
 
-        <!-- Быстрые показатели -->
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="stat">
-                        <div class="w-100">
-                            <div class="d-flex justify-content-between">
-                                <div>Шаги <small class="text-muted">сегодня</small></div>
-                                <div class="num"
-                                     th:text="${#lists.isEmpty(m.activityDaily) ? '—' : (m.activityDaily.get(0).steps != null ? m.activityDaily.get(0).steps : '—')}">—</div>
-                            </div>
-                            <div class="spark-wrap"><canvas id="stepsSpark"></canvas></div>
-                        </div>
                     </div>
                 </div>
-
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="stat">
-                        <div class="w-100">
-                            <div class="d-flex justify-content-between">
-                                <div>Готовность <small class="text-muted">баллы</small></div>
-                                <div class="num"
-                                     th:text="${#lists.isEmpty(m.readinessDaily) ? '—' : (m.readinessDaily.get(0).score != null ? m.readinessDaily.get(0).score : '—')}">—</div>
-                            </div>
-                            <div class="spark-wrap"><canvas id="readinessSpark"></canvas></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="stat">
-                        <div class="w-100">
-                            <div class="d-flex justify-content-between">
-                                <div>Сон <small class="text-muted">минут сегодня</small></div>
-                                <div class="num"
-                                     th:text="${#lists.isEmpty(m.sleepDaily) ? '—' : (m.sleepDaily.get(0).totalSleepSec != null ? m.sleepDaily.get(0).totalSleepSec/60 : '—')}">—</div>
-                            </div>
-                            <div class="spark-wrap"><canvas id="sleepSpark"></canvas></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="stat">
-                        <div class="w-100">
-                            <div class="d-flex justify-content-between">
-                                <div>Пульс (послед.)</div>
-                                <div class="num" th:text="${#lists.isEmpty(m.hr) ? '—' : (m.hr.get(m.hr.size()-1).bpm)}">—</div>
-                            </div>
-                            <small class="text-muted"
-                                   th:text="${#lists.isEmpty(m.hr) ? '' : T(com.sportfd.healthapp.service.PatientMetricsService).fmtTime(m.hr.get(m.hr.size()-1).ts, m.zone)}">—</small>
-                            <div class="spark-wrap"><canvas id="hrSpark"></canvas></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Табы -->
-    <ul class="nav nav-pills mb-3 justify-content-center" id="patientTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="tab-overview" data-bs-toggle="tab" data-bs-target="#pane-overview" type="button" role="tab">
-                Обзор
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tab-series" data-bs-toggle="tab" data-bs-target="#pane-series" type="button" role="tab">
-                Рядовые данные
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tab-daily" data-bs-toggle="tab" data-bs-target="#pane-daily" type="button" role="tab">
-                Суточные
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tab-sessions" data-bs-toggle="tab" data-bs-target="#pane-sessions" type="button" role="tab">
-                Сессии
-            </button>
-        </li>
-    </ul>
-
-    <div class="tab-content">
-
-        <!-- Обзор -->
-        <div class="tab-pane fade show active" id="pane-overview" role="tabpanel">
-            <div class="row g-4">
-                <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header"><h6 class="mb-0">ЧСС — сегодня</h6></div>
-                        <div class="card-body">
-                            <!-- спарклайн над таблицей -->
-                            <div class="spark-wrap mb-3"><canvas id="hrSparkBig"></canvas></div>
-
-                            <div th:if="${#lists.isEmpty(m.hr)}" class="alert alert-warning mb-0">Данных о пульсе за сегодня нет.</div>
-                            <div th:if="${!#lists.isEmpty(m.hr)}" class="table-responsive">
-                                <table class="table table-sm table-hover align-middle">
-                                    <thead><tr><th>Провайдер</th><th>Время</th><th>BPM</th></tr></thead>
-                                    <tbody>
-                                    <tr th:each="h : ${m.hr}">
-                                        <td th:text="${h.provider}">OURA</td>
-                                        <td th:text="${T(com.sportfd.healthapp.service.PatientMetricsService).fmtTime(h.ts, m.zone)}">12:34</td>
-                                        <td th:text="${h.bpm}">62</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <!-- скрытый набор точек для графиков HR -->
-                            <div id="hr-dataset" class="d-none">
-                                <span class="hr-point"
-                                      th:each="h : ${m.hr}"
-                                      th:attr="data-t=${T(com.sportfd.healthapp.service.PatientMetricsService).fmtTime(h.ts, m.zone)}, data-v=${h.bpm}"></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header"><h6 class="mb-0">SpO₂ — сегодня</h6></div>
-                        <div class="card-body">
-                            <div class="spark-wrap mb-3"><canvas id="spo2SparkBig"></canvas></div>
-
-                            <div th:if="${#lists.isEmpty(m.spo2)}" class="alert alert-warning mb-0">Данных SpO₂ за сегодня нет.</div>
-                            <div th:if="${!#lists.isEmpty(m.spo2)}" class="table-responsive">
-                                <table class="table table-sm table-hover align-middle">
-                                    <thead><tr><th>Провайдер</th><th>Время</th><th>SpO₂, %</th></tr></thead>
-                                    <tbody>
-                                    <tr th:each="s : ${m.spo2}">
-                                        <td th:text="${s.provider}">OURA</td>
-                                        <td th:text="${T(com.sportfd.healthapp.service.PatientMetricsService).fmtTime(s.ts, m.zone)}">00:00</td>
-                                        <td th:text="${#numbers.formatDecimal(s.spo2Pct,1,1)}">96.4</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <!-- скрытый набор точек для графиков SpO2 -->
-                            <div id="spo2-dataset" class="d-none">
-                                <span class="spo2-point"
-                                      th:each="s : ${m.spo2}"
-                                      th:attr="data-t=${T(com.sportfd.healthapp.service.PatientMetricsService).fmtTime(s.ts, m.zone)}, data-v=${#numbers.formatDecimal(s.spo2Pct,1,1)}"></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Рядовые данные -->
-        <div class="tab-pane fade" id="pane-series" role="tabpanel">
-            <div class="row g-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header"><h6 class="mb-0">ЧСС — сегодня</h6></div>
-                        <div class="card-body">
-                            <div th:if="${#lists.isEmpty(m.hr)}" class="alert alert-warning mb-0">Нет рядовых данных по пульсу.</div>
-                            <div th:if="${!#lists.isEmpty(m.hr)}" class="table-responsive">
-                                <table class="table table-hover align-middle">
-                                    <thead><tr><th>Провайдер</th><th>Время</th><th>BPM</th></tr></thead>
-                                    <tbody>
-                                    <tr th:each="h : ${m.hr}">
-                                        <td th:text="${h.provider}">OURA</td>
-                                        <td th:text="${T(com.sportfd.healthapp.service.PatientMetricsService).fmtTime(h.ts, m.zone)}">12:34</td>
-                                        <td th:text="${h.bpm}">62</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header"><h6 class="mb-0">SpO₂ — сегодня</h6></div>
-                        <div class="card-body">
-                            <div th:if="${#lists.isEmpty(m.spo2)}" class="alert alert-warning mb-0">Нет рядовых данных SpO₂.</div>
-                            <div th:if="${!#lists.isEmpty(m.spo2)}" class="table-responsive">
-                                <table class="table table-hover align-middle">
-                                    <thead><tr><th>Провайдер</th><th>Время</th><th>SpO₂, %</th></tr></thead>
-                                    <tbody>
-                                    <tr th:each="s : ${m.spo2}">
-                                        <td th:text="${s.provider}">OURA</td>
-                                        <td th:text="${T(com.sportfd.healthapp.service.PatientMetricsService).fmtTime(s.ts, m.zone)}">00:00</td>
-                                        <td th:text="${#numbers.formatDecimal(s.spo2Pct,1,1)}">96.4</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Суточные -->
-        <div class="tab-pane fade" id="pane-daily" role="tabpanel">
-            <div class="row g-4">
-                <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header"><h6 class="mb-0">Активность (суточные)</h6></div>
-                        <div class="card-body">
-                            <div th:if="${#lists.isEmpty(m.activityDaily)}" class="text-muted">Нет суточных данных по активности.</div>
-                            <div th:if="${!#lists.isEmpty(m.activityDaily)}" class="table-responsive">
-                                <table class="table table-sm table-striped align-middle">
-                                    <thead>
-                                    <tr><th>Провайдер</th><th>Шаги</th><th>Ккал (акт.)</th><th>Дистанция, м</th></tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr th:each="a : ${m.activityDaily}">
-                                        <td th:text="${a.provider}">OURA</td>
-                                        <td th:text="${a.steps != null ? a.steps : 0}">0</td>
-                                        <td th:text="${a.caloriesActive != null ? a.caloriesActive : 0}">0</td>
-                                        <td th:text="${a.distanceM != null ? a.distanceM : 0}">0</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header"><h6 class="mb-0">Готовность (суточные)</h6></div>
-                        <div class="card-body">
-                            <div th:if="${#lists.isEmpty(m.readinessDaily)}" class="text-muted">Нет суточных данных по готовности.</div>
-                            <div th:if="${!#lists.isEmpty(m.readinessDaily)}" class="table-responsive">
-                                <table class="table table-sm table-striped align-middle">
-                                    <thead>
-                                    <tr><th>Провайдер</th><th>Скор</th><th>RHR (уд/мин)</th><th>HRV (мс)</th></tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr th:each="r : ${m.readinessDaily}">
-                                        <td th:text="${r.provider}">OURA</td>
-                                        <td th:text="${r.score != null ? r.score : '—'}">—</td>
-                                        <td th:text="${r.rhrBpm != null ? r.rhrBpm : '—'}">—</td>
-                                        <td th:text="${r.hrvAvgMs != null ? r.hrvAvgMs : '—'}">—</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header"><h6 class="mb-0">Сон (суточные)</h6></div>
-                        <div class="card-body">
-                            <div th:if="${#lists.isEmpty(m.sleepDaily)}" class="text-muted">Нет суточных данных по сну.</div>
-                            <div th:if="${!#lists.isEmpty(m.sleepDaily)}" class="table-responsive">
-                                <table class="table table-sm table-striped align-middle">
-                                    <thead>
-                                    <tr><th>Провайдер</th><th>Скор</th><th>Сон, мин</th><th>HRV (мс)</th></tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr th:each="s : ${m.sleepDaily}">
-                                        <td th:text="${s.provider}">OURA</td>
-                                        <td th:text="${s.score != null ? s.score : '—'}">—</td>
-                                        <td th:text="${s.totalSleepSec != null ? s.totalSleepSec/60 : 0}">0</td>
-                                        <td th:text="${s.hrvAvgMs != null ? s.hrvAvgMs : '—'}">—</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Сессии -->
-        <div class="tab-pane fade" id="pane-sessions" role="tabpanel">
-            <div class="row g-4">
-                <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header"><h6 class="mb-0">Тренировки — сегодня</h6></div>
-                        <div class="card-body">
-                            <div th:if="${#lists.isEmpty(m.activitySessions)}" class="alert alert-info mb-0">Тренировок за сегодня нет.</div>
-                            <div th:if="${!#lists.isEmpty(m.activitySessions)}" class="table-responsive">
-                                <table class="table table-sm table-striped">
-                                    <thead><tr>
-                                        <th>Провайдер</th><th>Начало</th><th>Конец</th><th>Вид</th><th>Средн. пульс</th><th>Ккал</th><th>Дист., м</th>
-                                    </tr></thead>
-                                    <tbody>
-                                    <tr th:each="w : ${m.activitySessions}">
-                                        <td th:text="${w.provider}">OURA</td>
-                                        <td th:text="${T(com.sportfd.healthapp.service.PatientMetricsService).fmtTime(w.startTime, m.zone)}">08:15</td>
-                                        <td th:text="${T(com.sportfd.healthapp.service.PatientMetricsService).fmtTime(w.endTime, m.zone)}">09:05</td>
-                                        <td th:text="${w.sportType}">run</td>
-                                        <td th:text="${w.avgHr}">132</td>
-                                        <td th:text="${w.calories}">450</td>
-                                        <td th:text="${w.distanceM}">6000</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header"><h6 class="mb-0">Эпизоды сна — сегодня</h6></div>
-                        <div class="card-body">
-                            <div th:if="${#lists.isEmpty(m.sleepSessions)}" class="alert alert-info mb-0">Эпизодов сна, начинающихся сегодня, нет.</div>
-                            <div th:if="${!#lists.isEmpty(m.sleepSessions)}" class="table-responsive">
-                                <table class="table table-sm table-striped">
-                                    <thead><tr>
-                                        <th>Провайдер</th><th>Начало</th><th>Конец</th><th>Скор</th><th>Длит., мин</th><th>HRV</th>
-                                    </tr></thead>
-                                    <tbody>
-                                    <tr th:each="s : ${m.sleepSessions}">
-                                        <td th:text="${s.provider}">OURA</td>
-                                        <td th:text="${T(com.sportfd.healthapp.service.PatientMetricsService).fmtTime(s.startTime, m.zone)}">23:41</td>
-                                        <td th:text="${T(com.sportfd.healthapp.service.PatientMetricsService).fmtTime(s.endTime, m.zone)}">07:05</td>
-                                        <td th:text="${s.score}">80</td>
-                                        <td th:text="${s.durationSec != null ? s.durationSec/60 : '—'}">—</td>
-                                        <td th:text="${s.hrvAvgMs}">45</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
 
     </div>
 
-    <!-- Скрытая форма (на будущее) -->
+
+    <div th:if="${patient.device == 'oura' and patient.status == 'active'}" class="d-flex gap-2">
+        <div th:if="${#lists.isEmpty(ouraActivities)}" class="alert alert-info">
+            Нет активностей за выбранный период.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(ouraActivities)}" class="table-responsive" style="overflow-x:auto;">
+            <table class="table table-sm table-striped table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>Дата (day)</th>
+                    <th>Врем. метка</th>
+                    <th>Шаги</th>
+                    <th>Скор</th>
+                    <th>Актив. калории</th>
+                    <th>Средн. MET мин</th>
+
+                    <th>Meet daily targets</th>
+                    <th>Move every hour</th>
+                    <th>Recovery time</th>
+                    <th>Stay active</th>
+                    <th>Training freq</th>
+                    <th>Training volume</th>
+
+                    <th>Экв. дистанция</th>
+                    <th>High MET мин</th>
+                    <th>High время</th>
+                    <th>Неактив. алерты</th>
+                    <th>Low MET мин</th>
+                    <th>Low время</th>
+                    <th>Medium MET мин</th>
+                    <th>Medium время</th>
+
+                    <th>До цели (м)</th>
+                    <th>Non-wear время</th>
+                    <th>Resting время</th>
+                    <th>Sedentary MET</th>
+                    <th>Sedentary время</th>
+                    <th>Цель калории</th>
+                    <th>Цель метры</th>
+                    <th>Всего калорий</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="a : ${ouraActivities}">
+                    <td th:text="${a.day}">2025-09-24</td>
+                    <td th:text="${a.timeRecord != null ? #temporals.format(a.timeRecord, 'yyyy-MM-dd HH:mm') : '-'}">
+                        -
+                    </td>
+                    <td th:text="${a.steps}">0</td>
+                    <td th:text="${a.score}">0</td>
+                    <td th:text="${a.active_calories}">0</td>
+                    <td th:text="${#numbers.formatDecimal(a.average_met_minutes, 1, 2)}">0.00</td>
+
+                    <td th:text="${a.meet_daily_targets}">0</td>
+                    <td th:text="${a.move_every_hour}">0</td>
+                    <td th:text="${a.recovery_time}">0</td>
+                    <td th:text="${a.stay_active}">0</td>
+                    <td th:text="${a.training_frequency}">0</td>
+                    <td th:text="${a.training_volume}">0</td>
+
+                    <td th:text="${a.equivalent_walking_distance}">0</td>
+                    <td th:text="${a.high_activity_met_minutes}">0</td>
+                    <td th:text="${a.high_activity_time}">0</td>
+                    <td th:text="${a.inactivity_alerts}">0</td>
+                    <td th:text="${a.low_activity_met_minutes}">0</td>
+                    <td th:text="${a.low_activity_time}">0</td>
+                    <td th:text="${a.medium_activity_met_minutes}">0</td>
+                    <td th:text="${a.medium_activity_time}">0</td>
+
+                    <td th:text="${a.meters_to_target}">0</td>
+                    <td th:text="${a.non_wear_time}">0</td>
+                    <td th:text="${a.resting_time}">0</td>
+                    <td th:text="${a.sedentary_met_minutes}">0</td>
+                    <td th:text="${a.sedentary_time}">0</td>
+                    <td th:text="${a.target_calories}">0</td>
+                    <td th:text="${a.target_meters}">0</td>
+                    <td th:text="${a.total_calories}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${#lists.isEmpty(ouraHeartRate)}" class="alert alert-info">
+            Нет данных по сердцебиению за выбранный период.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(ouraHeartRate)}" class="table-responsive" style="overflow-x:auto;">
+            <table class="table table-sm table-striped table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>timeRecord</th>
+                    <th>bpm</th>
+                    <th>source</th>
+
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="a : ${ouraHeartRate}">
+                    <td th:text="${a.timeRecord != null ? #temporals.format(a.timeRecord, 'yyyy-MM-dd HH:mm') : '-'}">
+                        -
+                    </td>
+                    <td th:text="${a.bpm}">0</td>
+                    <td th:text="${a.source}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${#lists.isEmpty(ouraDaylySleep)}" class="alert alert-info">
+            Нет данных по daily sleep.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(ouraDaylySleep)}" class="table-responsive" style="overflow-x:auto;">
+            <table class="table table-sm table-striped table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>deep_sleep</th>
+                    <th>efficiency</th>
+                    <th>latency</th>
+                    <th>rem_sleep</th>
+                    <th>restfulness</th>
+                    <th>timing</th>
+                    <th>total_sleep</th>
+                    <th>day</th>
+                    <th>score</th>
+                    <th>timeRecord</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${ouraDaylySleep}">
+                    <td th:text="${s.deep_sleep}">0</td>
+                    <td th:text="${s.efficiency}">0</td>
+                    <td th:text="${s.latency}">0</td>
+                    <td th:text="${s.rem_sleep}">0</td>
+                    <td th:text="${s.restfulness}">0</td>
+                    <td th:text="${s.timing}">0</td>
+                    <td th:text="${s.total_sleep}">0</td>
+                    <td th:text="${s.day}">2025-09-24</td>
+                    <td th:text="${s.score}">0</td>
+                    <td th:text="${s.timeRecord != null ? #temporals.format(s.timeRecord, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${#lists.isEmpty(ouraSpo)}" class="alert alert-info">
+            Нет данных по Spo2 за выбранный период.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(ouraSpo)}" class="table-responsive" style="overflow-x:auto;">
+            <table class="table table-sm table-striped table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>breathing_disturbance_index</th>
+                    <th>day</th>
+                    <th>spo2_percentage</th>
+
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="a : ${ouraSpo}">
+                    <td th:text="${a.breathing_disturbance_index}">0</td>
+                    <td th:text="${a.day}">0</td>
+                    <td th:text="${a.spo2_percentage}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${#lists.isEmpty(ouraReadiness)}" class="alert alert-info">
+            Нет данных по readiness.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(ouraReadiness)}" class="table-responsive" style="overflow-x:auto;">
+            <table class="table table-sm table-striped table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>activity_balance</th>
+                    <th>body_temperature</th>
+                    <th>hrv_balance</th>
+                    <th>previous_day_activity</th>
+                    <th>previous_night</th>
+                    <th>recovery_index</th>
+                    <th>resting_heart_rate</th>
+                    <th>sleep_balance</th>
+                    <th>sleep_regularity</th>
+                    <th>day</th>
+                    <th>score</th>
+                    <th>timeRecord</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="r : ${ouraReadiness}">
+                    <td th:text="${r.activity_balance}">0</td>
+                    <td th:text="${r.body_temperature}">0</td>
+                    <td th:text="${r.hrv_balance}">0</td>
+                    <td th:text="${r.previous_day_activity}">0</td>
+                    <td th:text="${r.previous_night}">0</td>
+                    <td th:text="${r.recovery_index}">0</td>
+                    <td th:text="${r.resting_heart_rate}">0</td>
+                    <td th:text="${r.sleep_balance}">0</td>
+                    <td th:text="${r.sleep_regularity}">0</td>
+                    <td th:text="${r.day}">2025-09-24</td>
+                    <td th:text="${r.score}">0</td>
+                    <td th:text="${r.timeRecord != null ? #temporals.format(r.timeRecord, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${#lists.isEmpty(ouraSleep)}" class="alert alert-info">
+            Нет данных по sleep.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(ouraSleep)}" class="table-responsive" style="overflow-x:auto;">
+            <table class="table table-sm table-striped table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>average_breath</th>
+                    <th>average_heart_rate</th>
+                    <th>average_hrv</th>
+                    <th>awake_time</th>
+                    <th>bedtime_end</th>
+                    <th>bedtime_start</th>
+                    <th>day</th>
+                    <th>deep_sleep_duration</th>
+                    <th>efficiency</th>
+                    <th>latency</th>
+                    <th>light_sleep_duration</th>
+                    <th>lowest_heart_rate</th>
+                    <th>activity_balance</th>
+                    <th>body_temperature</th>
+                    <th>hrv_balance</th>
+                    <th>previous_day_activity</th>
+                    <th>previous_night</th>
+                    <th>recovery_index</th>
+                    <th>resting_heart_rate</th>
+                    <th>sleep_balance</th>
+                    <th>score</th>
+                    <th>temperature_deviation</th>
+                    <th>readiness_score_delta</th>
+                    <th>rem_sleep_duration</th>
+                    <th>restless_periods</th>
+                    <th>time_in_bed</th>
+                    <th>total_sleep_duration</th>
+                    <th>type</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${ouraSleep}">
+                    <td th:text="${s.average_breath}">0.0</td>
+                    <td th:text="${s.average_heart_rate}">0.0</td>
+                    <td th:text="${s.average_hrv}">0</td>
+                    <td th:text="${s.awake_time}">0</td>
+                    <td th:text="${s.bedtime_end != null ? #temporals.format(s.bedtime_end,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                    <td th:text="${s.bedtime_start != null ? #temporals.format(s.bedtime_start,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                    <td th:text="${s.day}">2025-09-24</td>
+                    <td th:text="${s.deep_sleep_duration}">0</td>
+                    <td th:text="${s.efficiency}">0</td>
+                    <td th:text="${s.latency}">0</td>
+                    <td th:text="${s.light_sleep_duration}">0</td>
+                    <td th:text="${s.lowest_heart_rate}">0</td>
+                    <td th:text="${s.activity_balance}">0</td>
+                    <td th:text="${s.body_temperature}">0</td>
+                    <td th:text="${s.hrv_balance}">0</td>
+                    <td th:text="${s.previous_day_activity}">0</td>
+                    <td th:text="${s.previous_night}">0</td>
+                    <td th:text="${s.recovery_index}">0</td>
+                    <td th:text="${s.resting_heart_rate}">0</td>
+                    <td th:text="${s.sleep_balance}">0</td>
+                    <td th:text="${s.score}">0</td>
+                    <td th:text="${s.temperature_deviation}">0.0</td>
+                    <td th:text="${s.readiness_score_delta}">0</td>
+                    <td th:text="${s.rem_sleep_duration}">0</td>
+                    <td th:text="${s.restless_periods}">0</td>
+                    <td th:text="${s.time_in_bed}">0</td>
+                    <td th:text="${s.total_sleep_duration}">0</td>
+                    <td th:text="${s.type}">-</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+
+    </div>
+
+    <div th:if="${patient.device == 'whoop' and patient.status == 'active'}" class="d-flex gap-2">
+        <div th:if="${#lists.isEmpty(whoopCycles)}" class="alert alert-info">
+            Нет данных по Whoop cycles.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(whoopCycles)}" class="table-responsive" style="overflow-x:auto;">
+            <table class="table table-sm table-striped table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>created_at</th>
+                    <th>updated_at</th>
+                    <th>start</th>
+                    <th>enddate</th>
+                    <th>timezone_offset</th>
+                    <th>score_state</th>
+                    <th>strain</th>
+                    <th>kilojoule</th>
+                    <th>average_heart_rate</th>
+                    <th>max_heart_rate</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="c : ${whoopCycles}">
+                    <td th:text="${c.created_at != null ? #temporals.format(c.created_at,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                    <td th:text="${c.updated_at != null ? #temporals.format(c.updated_at,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                    <td th:text="${c.start != null ? #temporals.format(c.start,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                    <td th:text="${c.enddate != null ? #temporals.format(c.enddate,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                    <td th:text="${c.timezone_offset}">+05:00</td>
+                    <td th:text="${c.score_state}">SCORED</td>
+                    <td th:text="${#numbers.formatDecimal(c.strain, 1, 2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(c.kilojoule, 1, 2)}">0.00</td>
+                    <td th:text="${c.average_heart_rate}">0</td>
+                    <td th:text="${c.max_heart_rate}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${#lists.isEmpty(whoopRecovery)}" class="alert alert-info">
+            Нет данных по recovery.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(whoopRecovery)}" class="table-responsive" style="overflow-x:auto;">
+            <table class="table table-sm table-striped table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>user_calibrating</th>
+                    <th>recovery_score</th>
+                    <th>resting_heart_rate</th>
+                    <th>hrv_rmssd_milli</th>
+                    <th>spo2_percentage</th>
+                    <th>skin_temp_celsius</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="r : ${whoopRecovery}">
+                    <td th:text="${r.user_calibrating}">false</td>
+                    <td th:text="${#numbers.formatDecimal(r.recovery_score, 1, 2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(r.resting_heart_rate, 1, 2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(r.hrv_rmssd_milli, 1, 2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(r.spo2_percentage, 1, 2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(r.skin_temp_celsius, 1, 2)}">0.00</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${#lists.isEmpty(whoopSleep)}" class="alert alert-info">
+            Нет данных по WHOOP sleep.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(whoopSleep)}" class="table-responsive" style="overflow-x:auto;">
+            <table class="table table-sm table-striped table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>start</th>
+                    <th>enddate</th>
+                    <th>timezone_offset</th>
+                    <th>score_state</th>
+                    <th>nap</th>
+
+                    <th>total_in_bed_time_milli</th>
+                    <th>total_awake_time_milli</th>
+                    <th>total_no_data_time_milli</th>
+                    <th>total_light_sleep_time_milli</th>
+                    <th>total_slow_wave_sleep_time_milli</th>
+                    <th>total_rem_sleep_time_milli</th>
+                    <th>sleep_cycle_count</th>
+                    <th>disturbance_count</th>
+
+                    <th>baseline_milli</th>
+                    <th>need_from_sleep_debt_milli</th>
+                    <th>need_from_recent_strain_milli</th>
+                    <th>need_from_recent_nap_milli</th>
+
+                    <th>respiratory_rate</th>
+                    <th>sleep_performance_percentage</th>
+                    <th>sleep_consistency_percentage</th>
+                    <th>sleep_efficiency_percentage</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${whoopSleep}">
+                    <td th:text="${s.start != null ? #temporals.format(s.start,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                    <td th:text="${s.enddate != null ? #temporals.format(s.enddate,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                    <td th:text="${s.timezone_offset}">+05:00</td>
+                    <td th:text="${s.score_state}">SCORED</td>
+                    <td th:text="${s.nap}">false</td>
+
+                    <td th:text="${s.total_in_bed_time_milli}">0</td>
+                    <td th:text="${s.total_awake_time_milli}">0</td>
+                    <td th:text="${s.total_no_data_time_milli}">0</td>
+                    <td th:text="${s.total_light_sleep_time_milli}">0</td>
+                    <td th:text="${s.total_slow_wave_sleep_time_milli}">0</td>
+                    <td th:text="${s.total_rem_sleep_time_milli}">0</td>
+                    <td th:text="${s.sleep_cycle_count}">0</td>
+                    <td th:text="${s.disturbance_count}">0</td>
+
+                    <td th:text="${s.baseline_milli}">0</td>
+                    <td th:text="${s.need_from_sleep_debt_milli}">0</td>
+                    <td th:text="${s.need_from_recent_strain_milli}">0</td>
+                    <td th:text="${s.need_from_recent_nap_milli}">0</td>
+
+                    <td th:text="${#numbers.formatDecimal(s.respiratory_rate,1,2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(s.sleep_performance_percentage,1,2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(s.sleep_consistency_percentage,1,2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(s.sleep_efficiency_percentage,1,2)}">0.00</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${#lists.isEmpty(whoopWorkout)}" class="alert alert-info">
+            Нет данных по WHOOP workout.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(whoopWorkout)}" class="table-responsive" style="overflow-x:auto;">
+            <table class="table table-sm table-striped table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>start</th>
+                    <th>enddate</th>
+                    <th>timezone_offset</th>
+                    <th>score_state</th>
+                    <th>sport_name</th>
+                    <th>strain</th>
+                    <th>average_heart_rate</th>
+                    <th>max_heart_rate</th>
+                    <th>kilojoule</th>
+                    <th>percent_recorded</th>
+                    <th>distance_meter</th>
+                    <th>altitude_gain_meter</th>
+                    <th>altitude_change_meter</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="w : ${whoopWorkout}">
+                    <td th:text="${w.start != null ? #temporals.format(w.start, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                    <td th:text="${w.enddate != null ? #temporals.format(w.enddate, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                    <td th:text="${w.timezone_offset}">+05:00</td>
+                    <td th:text="${w.score_state}">SCORED</td>
+                    <td th:text="${w.sport_name}">-</td>
+                    <td th:text="${#numbers.formatDecimal(w.strain,1,2)}">0.00</td>
+                    <td th:text="${w.average_heart_rate}">0</td>
+                    <td th:text="${w.max_heart_rate}">0</td>
+                    <td th:text="${#numbers.formatDecimal(w.kilojoule,1,2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(w.percent_recorded,1,2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(w.distance_meter,1,2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(w.altitude_gain_meter,1,2)}">0.00</td>
+                    <td th:text="${#numbers.formatDecimal(w.altitude_change_meter,1,2)}">0.00</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+
+    </div>
+
+
     <form id="syncForm"
           th:action="@{/patients/{id}/{provider}/sync(id=${patient.id}, provider='oura')}"
           method="post" class="d-none">
@@ -475,67 +664,97 @@
         const url = btn.getAttribute('data-url');
         if (!url) return;
         btn.disabled = true;
-        fetch(url, { method: 'GET', credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+        fetch(url, {method: 'GET', credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+            .then(r => {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.text();
+            })
             .then(link => navigator.clipboard.writeText(link)
                 .then(() => showInviteToast('Ссылка приглашения скопирована.'))
-                .catch(() => { prompt('Скопируйте ссылку вручную:', link); }))
+                .catch(() => {
+                    prompt('Скопируйте ссылку вручную:', link);
+                }))
             .catch(() => showInviteToast('Не удалось получить ссылку.'))
-            .finally(() => { btn.disabled = false; });
+            .finally(() => {
+                btn.disabled = false;
+            });
     }
+
     function showInviteToast(message) {
         const el = document.getElementById('inviteToast');
-        if (!el) { alert(message); return; }
+        if (!el) {
+            alert(message);
+            return;
+        }
         el.querySelector('.toast-body').textContent = message;
-        const t = new bootstrap.Toast(el, { delay: 2500 });
+        const t = new bootstrap.Toast(el, {delay: 2500});
         t.show();
     }
 
-    /* ==== сбор данных из скрытых span и построение спарклайнов ==== */
+    /* ===== Chart.js: сбор данных из скрытых span и построение ===== */
     function collectDataset(cls) {
         const nodes = Array.from(document.querySelectorAll('.' + cls));
         const labels = nodes.map(n => n.dataset.t);
         const values = nodes.map(n => Number(n.dataset.v)).filter(v => !Number.isNaN(v));
-        return { labels, values };
+        return {labels, values};
     }
 
-    function makeSparkline(canvasId, labels, values, opts={}) {
+    function makeSparkline(canvasId, labels, values, opts = {}) {
         const el = document.getElementById(canvasId);
         if (!el || !values || values.length === 0) return;
         new Chart(el.getContext('2d'), {
             type: 'line',
-            data: { labels, datasets: [{ data: values, fill:false, borderWidth:2, tension:0.35, pointRadius:0 }] },
+            data: {labels, datasets: [{data: values, fill: false, borderWidth: 2, tension: 0.35, pointRadius: 0}]},
             options: {
-                responsive:true, maintainAspectRatio:false,
-                plugins:{ legend:{display:false}, tooltip:{callbacks:{label:(c)=>(opts.unit?`${c.parsed.y} ${opts.unit}`:`${c.parsed.y}`)}}},
-                scales:{ x:{display:false}, y:{display:false, suggestedMin:opts.min, suggestedMax:opts.max} },
-                elements:{ line:{ borderJoinStyle:'round', borderCapStyle:'round' } }
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: {display: false},
+                    tooltip: {callbacks: {label: (c) => (opts.unit ? `${c.parsed.y} ${opts.unit}` : `${c.parsed.y}`)}}
+                },
+                scales: {x: {display: false}, y: {display: false, suggestedMin: opts.min, suggestedMax: opts.max}},
+                elements: {line: {borderJoinStyle: 'round', borderCapStyle: 'round'}}
             }
         });
     }
 
-    // HR
-    (function(){
+    // HR графики
+    (function () {
         const {labels, values} = collectDataset('hr-point');
-        if (values.length){
+        if (values.length) {
             makeSparkline('hrSpark', labels, values, {});
             makeSparkline('hrSparkBig', labels, values, {});
         }
     })();
 
-    // SpO2
-    (function(){
+    // SpO2 графики
+    (function () {
         const {labels, values} = collectDataset('spo2-point');
-        if (values.length){
+        if (values.length) {
             const min = Math.min(...values) - 0.5, max = Math.max(...values) + 0.5;
-            makeSparkline('spo2SparkBig', labels, values, { unit:'%', min, max });
+            makeSparkline('spo2SparkBig', labels, values, {unit: '%', min, max});
         }
     })();
 
-    // Примитивные спарклайны для шагов/готовности/сна (используем суточные значения, если есть)
-    (function(){
-        const steps = document.querySelectorAll('[th\\:each="a : ${m.activityDaily}"]'); // на сервере это отрендерится
-        // если понадобится «настоящая» история — лучше отдать массивы с бэка; этот блок можно удалить
+    // Мини-спарклайны для шагов/готовности/сна из суточных сводок
+    (function () {
+        const steps = Array.from(document.querySelectorAll('.steps-point'));
+        if (steps.length) {
+            makeSparkline('stepsSpark',
+                steps.map(n => n.dataset.t),
+                steps.map(n => Number(n.dataset.v)));
+        }
+        const ready = Array.from(document.querySelectorAll('.readiness-point'));
+        if (ready.length) {
+            makeSparkline('readinessSpark',
+                ready.map(n => n.dataset.t),
+                ready.map(n => Number(n.dataset.v)));
+        }
+        const sleep = Array.from(document.querySelectorAll('.sleep-point'));
+        if (sleep.length) {
+            makeSparkline('sleepSpark',
+                sleep.map(n => n.dataset.t),
+                sleep.map(n => Number(n.dataset.v)));
+        }
     })();
 </script>
 </body>

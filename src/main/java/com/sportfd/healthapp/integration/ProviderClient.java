@@ -15,14 +15,21 @@ public interface ProviderClient {
     void disconnect(Long patientId);
 
 
+    default void syncCycles(Long pid, OffsetDateTime from, OffsetDateTime to) {};
+    void syncSleep(Long pid, OffsetDateTime from, OffsetDateTime to);
+    default void syncRecovery(Long pid, OffsetDateTime from, OffsetDateTime to){};
+    default void syncWorkout(Long pid, OffsetDateTime from, OffsetDateTime to) {};
+    void syncAll(Long pid, OffsetDateTime from, OffsetDateTime to);
     default int syncSleepDaily(Long patientId, LocalDate start, LocalDate end) { return 0; }
     default int syncSleepSessions(Long patientId, OffsetDateTime from, OffsetDateTime to) { return 0; }
-    default int syncActivityDaily(Long patientId, LocalDate start, LocalDate end) { return 0; }
+    default int syncActivityDaily(Long patientId, OffsetDateTime from, OffsetDateTime to) { return 0; }
     default int syncActivitySessions(Long patientId, OffsetDateTime from, OffsetDateTime to) { return 0; }
-    default int syncReadinessDaily(Long patientId, LocalDate start, LocalDate end) { return 0; }
+    default int syncReadinessDaily(Long pid, OffsetDateTime from, OffsetDateTime to) { return 0; }
 
 
-
+    default void syncProfile(Long patientId) {
+    }
+    default int syncBodyMeasurement(Long patientId) { return 0; }
 
 
     @Transactional

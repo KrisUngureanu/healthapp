@@ -39,4 +39,12 @@ public class HttpClientsConfig {
                 .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
+
+    @Bean(name = "polarRestClient")
+    public RestClient polarRestClient() {
+        return RestClient.builder()
+                .baseUrl("https://www.polaraccesslink.com")
+                .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
 }

@@ -1,12 +1,11 @@
 package com.sportfd.healthapp.integration.whoop;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sportfd.healthapp.integration.ProviderClient;
-import com.sportfd.healthapp.model.Connection;
-import com.sportfd.healthapp.model.Patient;
+import com.sportfd.healthapp.model.*;
 import com.sportfd.healthapp.model.enums.Provider;
 import com.sportfd.healthapp.repo.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -19,6 +18,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.*;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -29,36 +29,37 @@ public class WhoopClient implements ProviderClient {
     @Qualifier("whoopRestClient")
     private final RestClient whoopclient;
     private final ConnectionRepository connections;
-    private final SleepDailyRepository sleepDailyRepo;
-    private final Spo2SampleRepository spo2SampleRepository;
-    public final ActivityDailyRepository activityDailyRepo;
-    private final ReadinessDailyRepository readinessDailyRepo;
-    private final SleepSessionRepository sleepSessionRepo;
-    private final ActivitySessionRepository activitySessionRepo;
-    private final HrSampleRepository hrSampleRepo;
-    private final PatientRepository patientRepository;
-    @Value("${app.whoop.client-id}")     private String clientId;
-    @Value("${app.whoop.client-secret}") private String clientSecret;
-    @Value("${app.whoop.redirect-uri}")  private String redirectUri;
 
-    public WhoopClient(@Qualifier("whoopRestClient") RestClient whoopclient, ConnectionRepository connections, SleepDailyRepository sleepDailyRepo, Spo2SampleRepository spo2SampleRepository, ActivityDailyRepository activityDailyRepo, ReadinessDailyRepository readinessDailyRepo, SleepSessionRepository sleepSessionRepo, ActivitySessionRepository activitySessionRepo, HrSampleRepository hrSampleRepo, PatientRepository patientRepository) {
+    private final PatientRepository patientRepository;
+    private final WhoopRecoveryRepository whoopRecoveryRepository;
+    private final WhoopSleepRepository whoopSleepRepository;
+    private final WhoopWorkoutRepository whoopWorkoutRepository;
+    private final WhoopCycleRepository whoopCycleRepository;
+    @Value("${app.whoop.client-id}")
+    private String clientId;
+    @Value("${app.whoop.client-secret}")
+    private String clientSecret;
+    @Value("${app.whoop.redirect-uri}")
+    private String redirectUri;
+
+    public WhoopClient(@Qualifier("whoopRestClient") RestClient whoopclient, ConnectionRepository connections, PatientRepository patientRepository, WhoopRecoveryRepository whoopRecoveryRepository, WhoopSleepRepository whoopSleepRepository, WhoopWorkoutRepository whoopWorkoutRepository, WhoopCycleRepository whoopCycleRepository) {
         this.whoopclient = whoopclient;
         this.connections = connections;
-        this.sleepDailyRepo = sleepDailyRepo;
-        this.spo2SampleRepository = spo2SampleRepository;
-        this.activityDailyRepo = activityDailyRepo;
-        this.readinessDailyRepo = readinessDailyRepo;
-        this.sleepSessionRepo = sleepSessionRepo;
-        this.activitySessionRepo = activitySessionRepo;
-        this.hrSampleRepo = hrSampleRepo;
+
         this.patientRepository = patientRepository;
+        this.whoopRecoveryRepository = whoopRecoveryRepository;
+        this.whoopSleepRepository = whoopSleepRepository;
+        this.whoopWorkoutRepository = whoopWorkoutRepository;
+        this.whoopCycleRepository = whoopCycleRepository;
     }
 
-    @Override public Provider provider() { return Provider.WHOOP; }
+    @Override
+    public Provider provider() {
+        return Provider.WHOOP;
+    }
 
     @Override
     public String buildAuthorizeUrl(String state, String scopes, String overrideRedirectUri) {
-        // не затеняем поле redirectUri
         String ru = (overrideRedirectUri != null && !overrideRedirectUri.isBlank())
                 ? overrideRedirectUri
                 : this.redirectUri;
@@ -102,201 +103,269 @@ public class WhoopClient implements ProviderClient {
     }
 
 
-    public int syncDaily(Long patientId, OffsetDateTime from, OffsetDateTime to) {
-        Connection c = requireConn(patientId);
-        int total = 0;
-        total += syncCyclesAsActivityDaily(patientId, from, to, c);
-        total += syncRecoveryAsReadinessDaily(patientId, from, to, c);
-        total += syncSleepDaily(patientId, from, to, c);
-        return total;
-    }
+    @Override
+    public void syncWorkout(Long pid, OffsetDateTime from, OffsetDateTime to) {
+        Connection c = requireConn(pid);
+        String base = "/developer/v2/activity/workout";
+        paged(base, from, to, c, node -> {
+            var records = node.path("records");
+            for (JsonNode record : records) {
+                String record_id = record.path("id").asText(null);
+                int user_id = record.path("user_id").asInt();
+                OffsetDateTime created_at = OffsetDateTime.parse(record.path("created_at").asText());
+                OffsetDateTime updated_at = OffsetDateTime.parse(record.path("updated_at").asText(null));
 
-    /** Сессии за период: workout→activity_session, sleep→sleep_session */
-    public int syncSessions(Long patientId, OffsetDateTime from, OffsetDateTime to) {
-        Connection c = requireConn(patientId);
-        int total = 0;
-        total += syncWorkouts(patientId, from, to, c);
-        total += syncSleepSessions(patientId, from, to, c);
-        return total;
-    }
+                OffsetDateTime start = OffsetDateTime.parse(record.path("start").asText(null));
+                OffsetDateTime enddate = null;
+                if (record.hasNonNull("end")) {
+                    enddate = OffsetDateTime.parse(record.path("end").asText());
+                }
+                String timezone_offset = record.path("timezone_offset").asText("Z");
+                String score_state = record.path("score_state").asText("SCORED");
+                String sport_name = record.path("sport_name").asText(null);
 
+                JsonNode score = record.path("score");
+                float strain = score.path("strain").floatValue();
+                int average_heart_rate = score.path("average_heart_rate").asInt();
+                int max_heart_rate = score.path("max_heart_rate").asInt();
+                float kilojoule = (float) score.path("kilojoule").asDouble(0d);
+                float percent_recorded = (float) score.path("percent_recorded").asDouble(0d);
+                float distance_meter = (float) score.path("distance_meter").asDouble(0d);
+                float altitude_gain_meter = (float) score.path("altitude_gain_meter").asDouble(0d);
+                float altitude_change_meter = (float) score.path("altitude_change_meter").asDouble(0d);
 
-    public int syncAll(Long patientId, OffsetDateTime from, OffsetDateTime to) {
-        return syncDaily(patientId, from, to) + syncSessions(patientId, from, to);
-    }
+                //проверим на уникальность
 
+                Optional<WhoopWorkout> workoutOld = whoopWorkoutRepository.findByRecordId(record_id);
+                if (workoutOld.isEmpty()) {
+                    WhoopWorkout workout = new WhoopWorkout();
+                    workout.setRecord_id(record_id);
+                    workout.setUserid(user_id);
+                    workout.setPatient_id(pid);
+                    workout.setCreated_at(created_at);
+                    workout.setUpdated_at(updated_at);
+                    workout.setStart(start);
+                    if (enddate != null) {
+                        workout.setEnddate(enddate);
+                    }
+                    workout.setTimezone_offset(timezone_offset);
+                    workout.setScore_state(score_state);
+                    workout.setSport_name(sport_name);
+                    workout.setStrain(strain);
+                    workout.setAverage_heart_rate(average_heart_rate);
+                    workout.setMax_heart_rate(max_heart_rate);
+                    workout.setKilojoule(kilojoule);
+                    workout.setPercent_recorded(percent_recorded);
+                    workout.setDistance_meter(distance_meter);
+                    workout.setAltitude_gain_meter(altitude_gain_meter);
+                    workout.setAltitude_change_meter(altitude_change_meter);
 
-    @Override public int syncHeartRate(Long patientId, OffsetDateTime from, OffsetDateTime to) { return 0; }
+                    whoopWorkoutRepository.save(workout);
 
+                }
 
-    @Override public int syncSpO2(Long patientId, OffsetDateTime from, OffsetDateTime to) { return 0; }
-
-    /* ==================== Реализации по сущностям ==================== */
-
-    // 1) Циклы → activity_daily (strain, kJ→kcal)
-    private int syncCyclesAsActivityDaily(Long pid, OffsetDateTime from, OffsetDateTime to, Connection c) {
-        String base = "/developer/v2/cycle"; // read:cycles
-        return paged(base, from, to, c, node -> {
-            var recs = node.path("records");
-            if (!recs.isArray()) return;
-            for (JsonNode r : recs) {
-                OffsetDateTime start = parseTs(r, "start");
-                if (start == null) continue;
-                LocalDate day = start.atZoneSameInstant(ZoneOffset.UTC).toLocalDate();
-
-                JsonNode score = r.path("score");
-                Double strain = score.hasNonNull("strain") ? score.get("strain").asDouble() : null;
-                Double kJ     = score.hasNonNull("kilojoule") ? score.get("kilojoule").asDouble() : null;
-                Integer avgHr = score.hasNonNull("average_heart_rate") ? score.get("average_heart_rate").asInt() : null;
-                Integer maxHr = score.hasNonNull("max_heart_rate") ? score.get("max_heart_rate").asInt() : null;
-
-                var existing = activityDailyRepo.findByPatientIdAndProviderAndDay(pid, Provider.WHOOP, day);
-                var e = existing.orElseGet(() -> {
-                    var x = new com.sportfd.healthapp.model.ActivityDaily();
-                    x.setPatientId(pid); x.setProvider(Provider.WHOOP); x.setDay(day);
-                    return x;
-                });
-                if (strain != null) e.setTrainingLoad((int) strain.floatValue());
-                if (kJ != null) e.setCaloriesActive(Math.round(kJ.floatValue() / 4.184f)); // ~ккал
-
-                activityDailyRepo.save(e);
             }
         });
     }
 
+    @Override
+    public void syncAll(Long pid, OffsetDateTime from, OffsetDateTime to) {
+        syncRecovery(pid, from, to);
+        syncCycles(pid, from, to);
+        syncSleep(pid, from, to);
+        syncWorkout(pid, from, to);
 
-    private int syncRecoveryAsReadinessDaily(Long pid, OffsetDateTime from, OffsetDateTime to, Connection c) {
-        String base = "/developer/v2/recovery"; // read:recovery
-        return paged(base, from, to, c, node -> {
-            var recs = node.path("records");
-            if (!recs.isArray()) return;
-            for (JsonNode r : recs) {
-                OffsetDateTime start = parseTs(r, "created_at", "start");
-                if (start == null) continue;
-                LocalDate day = start.atZoneSameInstant(ZoneOffset.UTC).toLocalDate();
+    }
 
-                JsonNode score = r.path("score");
-                Integer scorePct = valInt(score, "recovery_score_percentage"); // иногда "recovery_score_percentage"
-                Integer rhr      = valInt(score, "resting_heart_rate");
-                Integer hrvMs    = valInt(score, "heart_rate_variability_rmssd_milli");
+    @Override
+    public int syncHeartRate(Long patientId, OffsetDateTime from, OffsetDateTime to) {
+        return 0;
+    }
 
-                var existing = readinessDailyRepo.findByPatientIdAndProviderAndDay(pid, Provider.WHOOP, day);
-                var e = existing.orElseGet(() -> {
-                    var x = new com.sportfd.healthapp.model.ReadinessDaily();
-                    x.setPatientId(pid); x.setProvider(Provider.WHOOP); x.setDay(day);
-                    return x;
-                });
-                if (scorePct != null) e.setScore((int) scorePct.shortValue());
-                if (rhr != null)      e.setRhrBpm(rhr.shortValue());
-                if (hrvMs != null)    e.setHrvAvgMs(hrvMs.shortValue());
-                readinessDailyRepo.save(e);
+    @Override
+    public int syncSpO2(Long patientId, OffsetDateTime from, OffsetDateTime to) {
+        return 0;
+    }
+
+    @Override
+    public void syncCycles(Long pid, OffsetDateTime from, OffsetDateTime to) {
+        Connection c = requireConn(pid);
+        String base = "/developer/v2/cycle";
+        paged(base, from, to, c, node -> {
+            var records = node.path("records");
+            for (JsonNode record : records) {
+                int record_id = record.path("id").asInt();
+                int user_id = record.path("user_id").asInt();
+                OffsetDateTime created_at = OffsetDateTime.parse(record.path("created_at").asText());
+                OffsetDateTime updated_at = OffsetDateTime.parse(record.path("updated_at").asText(null));
+
+                OffsetDateTime start = OffsetDateTime.parse(record.path("start").asText(null));
+                OffsetDateTime enddate = null;
+                if (record.hasNonNull("end")) {
+                    enddate = OffsetDateTime.parse(record.path("end").asText());
+                }
+                String timezone_offset = record.path("timezone_offset").asText("Z");
+                String score_state = record.path("score_state").asText("SCORED");
+                JsonNode score = record.path("score");
+                float strain = score.path("strain").floatValue();
+                float kilojoule = score.path("kilojoule").floatValue();
+                int avgHr = score.path("average_heart_rate").asInt();
+                int maxHr = score.path("max_heart_rate").asInt();
+
+                //проверим на уникальность
+
+                Optional<WhoopCycle> cycleOld = whoopCycleRepository.findByRecordId(record_id);
+                if (cycleOld.isEmpty()) {
+                    WhoopCycle cycle = new WhoopCycle();
+                    cycle.setRecord_id((int) record_id);
+                    cycle.setUserid(user_id);
+                    cycle.setPatient_id(pid);
+                    cycle.setCreated_at(created_at);
+                    cycle.setUpdated_at(updated_at);
+                    cycle.setScore_state(score_state);
+                    cycle.setStart(start);
+                    cycle.setEnddate(enddate);
+                    cycle.setTimezone_offset(timezone_offset);
+                    cycle.setStrain(strain);
+                    cycle.setKilojoule(kilojoule);
+                    cycle.setAverage_heart_rate(avgHr);
+                    cycle.setMax_heart_rate(maxHr);
+
+                    whoopCycleRepository.save(cycle);
+                }
+
+            }
+        });
+
+    }
+
+    @Override
+    public void syncSleep(Long pid, OffsetDateTime from, OffsetDateTime to) {
+        String base = "/developer/v2/activity/sleep";
+        Connection c = requireConn(pid);
+        paged(base, from, to, c, node -> {
+            var records = node.path("records");
+            for (JsonNode record : records) {
+                String record_id = record.path("id").asText();
+                int cycle_id = record.path("cycle_id").asInt();
+                int user_id = record.path("user_id").asInt();
+                OffsetDateTime created_at = OffsetDateTime.parse(record.path("created_at").asText());
+                OffsetDateTime updated_at = OffsetDateTime.parse(record.path("updated_at").asText(null));
+
+                OffsetDateTime start = OffsetDateTime.parse(record.path("start").asText(null));
+                OffsetDateTime enddate = null;
+                if (record.hasNonNull("end")) {
+                    enddate = OffsetDateTime.parse(record.path("end").asText());
+                }
+                String timezone_offset = record.path("timezone_offset").asText("Z");
+                boolean nap = record.path("nap").asBoolean(false);
+                String score_state = record.path("score_state").asText("SCORED");
+                JsonNode score = record.path("score");
+                JsonNode stage = score.path("stage_summary");
+                JsonNode needed = score.path("sleep_needed");
+                int inBed = stage.path("total_in_bed_time_milli").asInt(0);
+                int awake = stage.path("total_awake_time_milli").asInt(0);
+                int noData = stage.path("total_no_data_time_milli").asInt(0);
+                int light = stage.path("total_light_sleep_time_milli").asInt(0);
+                int sws = stage.path("total_slow_wave_sleep_time_milli").asInt(0);
+                int rem = stage.path("total_rem_sleep_time_milli").asInt(0);
+                int cycles = stage.path("sleep_cycle_count").asInt(0);
+                int disturb = stage.path("disturbance_count").asInt(0);
+
+
+                int baseline = needed.path("baseline_milli").asInt(0);
+                int debt = needed.path("need_from_sleep_debt_milli").asInt(0);
+                int strainNeed = needed.path("need_from_recent_strain_milli").asInt(0);
+                int napNeed = needed.path("need_from_recent_nap_milli").asInt(0);
+
+                float rr = (float) score.path("respiratory_rate").asDouble(0d);
+                float perfPct = (float) score.path("sleep_performance_percentage").asDouble(0d);
+                float consistencyPct = (float) score.path("sleep_consistency_percentage").asDouble(0d);
+                float efficiencyPct = (float) score.path("sleep_efficiency_percentage").asDouble(0d);
+
+                var existingOpt = whoopSleepRepository.findByRecordId(record_id);
+                WhoopSleep e = existingOpt.orElseGet(WhoopSleep::new);
+
+                e.setRecord_id(record_id);
+                e.setUserid(user_id);
+                e.setPatient_id(pid);
+                e.setCycle_id((long) cycle_id);
+
+                e.setCreated_at(created_at);
+                e.setUpdated_at(updated_at);
+                e.setStart(start);
+                e.setEnddate(enddate);
+
+                e.setTimezone_offset(timezone_offset);
+                e.setScore_state(score_state);
+                e.setNap(nap);
+
+                e.setTotal_in_bed_time_milli(inBed);
+                e.setTotal_awake_time_milli(awake);
+                e.setTotal_no_data_time_milli(noData);
+                e.setTotal_light_sleep_time_milli(light);
+                e.setTotal_slow_wave_sleep_time_milli(sws);
+                e.setTotal_rem_sleep_time_milli(rem);
+                e.setSleep_cycle_count(cycles);
+                e.setDisturbance_count(disturb);
+
+                e.setBaseline_milli(baseline);
+                e.setNeed_from_sleep_debt_milli(debt);
+                e.setNeed_from_recent_strain_milli(strainNeed);
+                e.setNeed_from_recent_nap_milli(napNeed);
+
+                e.setRespiratory_rate(rr);
+                e.setSleep_performance_percentage(perfPct);
+                e.setSleep_consistency_percentage(consistencyPct);
+                e.setSleep_efficiency_percentage(efficiencyPct);
+
+                whoopSleepRepository.save(e);
+
             }
         });
     }
 
+    @Override
+    public void syncRecovery(Long pid, OffsetDateTime from, OffsetDateTime to) {
+        String base = "/developer/v2/recovery";
+        Connection c = requireConn(pid);
+        paged(base, from, to, c, node -> {
+            var records = node.path("records");
+            for (JsonNode record : records) {
+                String sleep_id = record.path("sleep_id").asText();
+                int cycle_id = record.path("cycle_id").asInt();
+                int user_id = record.path("user_id").asInt();
+                OffsetDateTime created_at = OffsetDateTime.parse(record.path("created_at").asText());
+                OffsetDateTime updated_at = OffsetDateTime.parse(record.path("updated_at").asText(null));
+                String score_state = record.path("score_state").asText("SCORED");
+                JsonNode score = record.path("score");
+                boolean user_calibrating = score.path("user_calibrating").asBoolean(false);
+                float recovery_score = (float) score.path("recovery_score").asDouble(0d);
+                float resting_heart_rate = (float) score.path("resting_heart_rate").asDouble(0d);
+                float hrv_rmssd_milli = (float) score.path("hrv_rmssd_milli").asDouble(0d);
+                float spo2_percentage = (float) score.path("spo2_percentage").asDouble(0d);
+                float skin_temp_celsius = (float) score.path("skin_temp_celsius").asDouble(0d);
+                var existingOpt = whoopRecoveryRepository.findByRecordId(sleep_id);
+                WhoopRecovery recovery = existingOpt.orElseGet(WhoopRecovery::new);
+                recovery.setRecord_id(cycle_id);
+                recovery.setSleep_id(sleep_id);
+                recovery.setCycle_id(cycle_id);
+                recovery.setUserid(user_id);
+                recovery.setPatient_id(pid);
+                recovery.setCreated_at(created_at);
+                recovery.setUpdated_at(updated_at);
+                recovery.setScore_state(score_state);
+                recovery.setUser_calibrating(user_calibrating);
+                recovery.setRecovery_score(recovery_score);
+                recovery.setResting_heart_rate(resting_heart_rate);
+                recovery.setHrv_rmssd_milli(hrv_rmssd_milli);
+                recovery.setSpo2_percentage(spo2_percentage);
+                recovery.setSkin_temp_celsius(skin_temp_celsius);
 
-    private int syncSleepSessions(Long pid, OffsetDateTime from, OffsetDateTime to, Connection c) {
-        String base = "/developer/v2/activity/sleep"; // read:sleep
-        return paged(base, from, to, c, node -> {
-            var recs = node.path("records");
-            if (!recs.isArray()) return;
-            for (JsonNode r : recs) {
-                String id = valStr(r, "id");
-                OffsetDateTime start = parseTs(r, "start");
-                OffsetDateTime end   = parseTs(r, "end");
-                if (start == null || end == null) continue;
-
-                JsonNode score = r.path("score");
-                Integer scorePct = valInt(score, "sleep_performance_percentage");
-
-                long durSec = Duration.between(start, end).getSeconds();
-                // HRV/RHR по ночи у WHOOP бывает в recovery, но не всегда в sleep — оставим null
-                var opt = sleepSessionRepo.findByPatientIdAndProviderAndSourceId(pid, Provider.WHOOP, id);
-                var e = opt.orElseGet(() -> {
-                    var x = new com.sportfd.healthapp.model.SleepSession();
-                    x.setPatientId(pid); x.setProvider(Provider.WHOOP); x.setSourceId(id);
-                    x.setStartTime(start); x.setEndTime(end);
-                    return x;
-                });
-                e.setDurationSec((int) durSec);
-                if (scorePct != null) e.setScore((int) scorePct.shortValue());
-                sleepSessionRepo.save(e);
+                whoopRecoveryRepository.save(recovery);
             }
         });
     }
-
-
-    private int syncSleepDaily(Long pid, OffsetDateTime from, OffsetDateTime to, Connection c) {
-        final int[] saved = {0};
-        paged("/developer/v2/activity/sleep", from, to, c, node -> {
-            var recs = node.path("records");
-            if (!recs.isArray()) return;
-            for (JsonNode r : recs) {
-                OffsetDateTime start = parseTs(r, "start");
-                if (start == null) continue;
-                LocalDate day = start.atZoneSameInstant(ZoneOffset.UTC).toLocalDate();
-
-                JsonNode score = r.path("score");
-                Integer sleepScore = valInt(score, "sleep_performance_percentage");
-
-                JsonNode stages = score.path("stage_summary");
-                long lightMs   = valLong(stages, "light_sleep_duration_milli");
-                long remMs     = valLong(stages, "rem_sleep_duration_milli");
-                long swsMs     = valLong(stages, "slow_wave_sleep_duration_milli");
-                long totalMs   = lightMs + remMs + swsMs;
-
-                var existing = sleepDailyRepo.findByPatientIdAndProviderAndDay(pid, Provider.WHOOP, day);
-                var e = existing.orElseGet(() -> {
-                    var x = new com.sportfd.healthapp.model.SleepDaily();
-                    x.setPatientId(pid); x.setProvider(Provider.WHOOP); x.setDay(day);
-                    return x;
-                });
-                if (sleepScore != null) e.setScore((int) sleepScore.shortValue());
-                e.setTotalSleepSec((int) (totalMs / 1000));
-                sleepDailyRepo.save(e);
-                saved[0]++;
-            }
-        });
-        return saved[0];
-    }
-
-
-    private int syncWorkouts(Long pid, OffsetDateTime from, OffsetDateTime to, Connection c) {
-        String base = "/developer/v2/activity/workout"; // read:workout
-        return paged(base, from, to, c, node -> {
-            var recs = node.path("records");
-            if (!recs.isArray()) return;
-            for (JsonNode r : recs) {
-                String id = valStr(r, "id");
-                OffsetDateTime start = parseTs(r, "start");
-                OffsetDateTime end   = parseTs(r, "end");
-                if (start == null || end == null) continue;
-
-                JsonNode s = r.path("score");
-                Integer avgHr = valInt(s, "average_heart_rate");
-                Double  kJ    = valDbl(s, "kilojoule");
-                Integer distM = valInt(s, "distance_meter");
-                // тип спорта может быть как enum/число/строка в зависимости от версии; берём name/label/id
-                String sport  = valStr(r, "sport_name");
-                if (sport == null) sport = valStr(r, "sport");
-                if (sport == null && r.hasNonNull("sport_id")) sport = "sport:" + r.get("sport_id").asText();
-
-                var opt = activitySessionRepo.findByPatientIdAndProviderAndSourceId(pid, Provider.WHOOP, id);
-                var e = opt.orElseGet(() -> {
-                    var x = new com.sportfd.healthapp.model.ActivitySession();
-                    x.setPatientId(pid); x.setProvider(Provider.WHOOP); x.setSourceId(id);
-                    x.setStartTime(start); x.setEndTime(end);
-                    return x;
-                });
-                if (avgHr != null) e.setAvgHr(avgHr.shortValue());
-                if (kJ != null)    e.setCalories(Math.round((float)(kJ / 4.184)));
-                if (distM != null) e.setDistanceM(distM);
-                if (sport != null) e.setSportType(sport);
-                activitySessionRepo.save(e);
-            }
-        });
-    }
-
 
 
     private Connection requireConn(Long pid) {
@@ -321,7 +390,7 @@ public class WhoopClient implements ProviderClient {
             if (root == null) break;
             pageConsumer.accept(root);
             next = valStr(root, "next_token");
-            saved++; // счёт страниц
+            saved++;
         } while (next != null && !next.isBlank());
         return saved;
     }
@@ -334,7 +403,7 @@ public class WhoopClient implements ProviderClient {
                     .retrieve()
                     .body(JsonNode.class);
         } catch (HttpClientErrorException.Unauthorized e) {
-            // попытаться обновить
+
             String fresh = refreshAccessToken(accessToken);
             if (fresh == null) throw e;
             return whoopclient.get().uri(url)
@@ -373,7 +442,10 @@ public class WhoopClient implements ProviderClient {
     @Transactional
     protected void upsertTokens(Long pid, TokenResp t) {
         var c = connections.findByPatientIdAndProvider(pid, Provider.WHOOP).orElseGet(Connection::new);
-        if (c.getId() == null) { c.setPatientId(pid); c.setProvider(Provider.WHOOP); }
+        if (c.getId() == null) {
+            c.setPatientId(pid);
+            c.setProvider(Provider.WHOOP);
+        }
         c.setAccessToken(t.access_token);
         if (t.refresh_token != null) c.setRefreshToken(t.refresh_token);
         c.setScope(t.scope);
@@ -381,44 +453,80 @@ public class WhoopClient implements ProviderClient {
         c.setTokenType("Bearer");
         connections.save(c);
     }
-    // daily (LocalDate)
-    @Override public int syncSleepDaily(Long id, LocalDate s, LocalDate e) {
-        return syncDaily(id, s.atStartOfDay().atOffset(ZoneOffset.UTC),
-                e.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC));
-    }
-    @Override public int syncActivityDaily(Long id, LocalDate s, LocalDate e) {
-        return syncDaily(id, s.atStartOfDay().atOffset(ZoneOffset.UTC),
-                e.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC));
-    }
-    @Override public int syncReadinessDaily(Long id, LocalDate s, LocalDate e) {
-        return syncDaily(id, s.atStartOfDay().atOffset(ZoneOffset.UTC),
-                e.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC));
+
+
+    public void syncProfile(Long patientId) {
+        Connection c = requireConn(patientId);
+        JsonNode root = getJson("/developer/v2/user/profile/basic", c.getAccessToken());
+
+
+        var p = patientRepository.findById(patientId)
+                .orElseThrow(() -> new IllegalStateException("Patient not found " + patientId));
+
+
+        if (root.hasNonNull("birth_date")) {
+            try {
+                p.setBirthDate(java.time.LocalDate.parse(root.get("birth_date").asText()));
+            } catch (Exception ignored) {
+            }
+        }
+        if (root.hasNonNull("gender")) {
+            p.setSex(root.get("gender").asText()); // или enum, если есть
+        }
+
+        if (root.isObject()) {
+            ((ObjectNode) root).remove(List.of());
+            p.setProfileJson(root.toString());
+        }
+        patientRepository.save(p);
     }
 
-    // sessions (OffsetDateTime)
-    @Override public int syncSleepSessions(Long id, OffsetDateTime from, OffsetDateTime to) {
-        return syncSessions(id, from, to);
+    public int syncBodyMeasurement(Long patientId) {
+        Connection c = requireConn(patientId);
+        JsonNode root = getJson("/developer/v2/user/measurement/body", c.getAccessToken());
+        if (root == null || !root.isObject()) return 0;
+
+        var p = patientRepository.findById(patientId)
+                .orElseThrow(() -> new IllegalStateException("Patient not found " + patientId));
+
+
+        if (root.hasNonNull("height_meter")) {
+            double meters = root.get("height_meter").asDouble();
+            p.setHeightCm((int) Math.round(meters * 100.0));
+        }
+        if (root.hasNonNull("weight_kilogram")) p.setWeightKg(root.get("weight_kilogram").asDouble());
+
+
+        p.setBodyMeasurementJson(root.toString());
+        patientRepository.save(p);
+        return 1;
     }
-    @Override public int syncActivitySessions(Long id, OffsetDateTime from, OffsetDateTime to) {
-        return syncSessions(id, from, to);
+
+
+    private static String enc(String s) {
+        return URLEncoder.encode(s, StandardCharsets.UTF_8);
     }
-    private static String enc(String s) { return URLEncoder.encode(s, StandardCharsets.UTF_8); }
 
     private static OffsetDateTime parseTs(JsonNode n, String... keys) {
-        for (var k : keys) if (n.hasNonNull(k)) {
-            try { return OffsetDateTime.parse(n.get(k).asText()); } catch (Exception ignored) {}
-        }
+        for (var k : keys)
+            if (n.hasNonNull(k)) {
+                try {
+                    return OffsetDateTime.parse(n.get(k).asText());
+                } catch (Exception ignored) {
+                }
+            }
         return null;
     }
-    private static Integer valInt(JsonNode n, String key) { return n != null && n.hasNonNull(key) ? n.get(key).asInt() : null; }
-    private static Long    valLong(JsonNode n, String key){ return n != null && n.hasNonNull(key) ? n.get(key).asLong() : 0L; }
-    private static Double  valDbl(JsonNode n, String key) { return n != null && n.hasNonNull(key) ? n.get(key).asDouble() : null; }
-    private static String  valStr(JsonNode n, String key) { return n != null && n.hasNonNull(key) ? n.get(key).asText() : null; }
+
+
+    private static String valStr(JsonNode n, String key) {
+        return n != null && n.hasNonNull(key) ? n.get(key).asText() : null;
+    }
 
     private static class TokenResp {
         public String access_token;
         public String refresh_token;
-        public Long   expires_in;
+        public Long expires_in;
         public String token_type;
         public String scope;
     }
