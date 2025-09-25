@@ -78,7 +78,6 @@ public class WhoopClient implements ProviderClient {
 
     @Override
     public void exchangeCodeAndSave(Long patientId, String code) {
-        // ВАЖНО: правильный путь — /oauth/oauth2/token
         var form = "grant_type=authorization_code"
                 + "&code=" + enc(code)
                 + "&redirect_uri=" + enc(redirectUri)
@@ -86,7 +85,7 @@ public class WhoopClient implements ProviderClient {
                 + "&client_secret=" + enc(clientSecret);
 
         var token = whoopclient.post()
-                .uri("/oauth/oauth2/token") // <-- было /oauth/token (неверно)
+                .uri("/oauth/oauth2/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(form)
                 .retrieve()
@@ -505,17 +504,6 @@ public class WhoopClient implements ProviderClient {
 
     private static String enc(String s) {
         return URLEncoder.encode(s, StandardCharsets.UTF_8);
-    }
-
-    private static OffsetDateTime parseTs(JsonNode n, String... keys) {
-        for (var k : keys)
-            if (n.hasNonNull(k)) {
-                try {
-                    return OffsetDateTime.parse(n.get(k).asText());
-                } catch (Exception ignored) {
-                }
-            }
-        return null;
     }
 
 
