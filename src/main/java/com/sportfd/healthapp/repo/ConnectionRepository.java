@@ -9,17 +9,11 @@ import java.util.Optional;
 
 public interface ConnectionRepository extends JpaRepository<Connection, Long> {
     List<Connection> findByPatientId(Long patientId);
-    boolean existsByPatientIdAndProvider(Long patientId, Provider provider);
-    Optional<Connection> findByPatientIdAndProvider(Long patientId, String provider);
-    boolean existsByPatientIdAndProvider(Long patientId, String provider);
-    void deleteByPatientIdAndProvider(Long patientId, String provider);
-
 
     Optional<Connection> findByPatientIdAndProvider(Long patientId, Provider provider);
 
     void deleteByPatientIdAndProvider(Long patientId, Provider provider);
 
-    Optional<Connection> findFirstByPatientIdAndProvider(Long pid, Provider provider);
 
     Connection findByAccessToken(String oldAccessToken);
 }

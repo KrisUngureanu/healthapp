@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Base64;
@@ -34,15 +35,17 @@ public class PolarClient implements ProviderClient {
     private final RestClient polar; // можно использовать для API Polar (не для авторизации)
     private final ConnectionRepository connections;
     private final PatientRepository patientRepository;
-
+    @Qualifier("polarAccessLink")
+    private final RestClient accessLink;
     @Value("${app.polar.client-id}")     private String clientId;
     @Value("${app.polar.client-secret}") private String clientSecret;
     @Value("${app.polar.redirect-uri}")  private String redirectUri;
 
-    public PolarClient(@Qualifier("polarRestClient") RestClient polar,
+    public PolarClient(@Qualifier("polarRestClient") RestClient polar, @Qualifier("polarAccessLink") RestClient accessLink,
                        ConnectionRepository connections,
                        PatientRepository patientRepository) {
         this.polar = polar;
+        this.accessLink = accessLink;
         this.connections = connections;
         this.patientRepository = patientRepository;
     }
@@ -173,4 +176,54 @@ public class PolarClient implements ProviderClient {
     public int syncSpO2(Long patientId, OffsetDateTime from, OffsetDateTime to) {
         return 0;
     }
+
+    @Transactional
+    public PolarRegisterResult registerUser(Long patientId) {
+        var conn = connections.findByPatientIdAndProvider(patientId, Provider.POLAR)
+                .orElseThrow(() -> new IllegalStateException("No Polar connection for patientId=" + patientId));
+
+        String token = Objects.requireNonNull(conn.getAccessToken(), "Polar access token is null");
+
+        // Можно использовать patientId или сохранённый x_user_id как member-id
+        record RegisterBody(@com.fasterxml.jackson.annotation.JsonProperty("member-id") String memberId) {}
+        RegisterBody body = new RegisterBody(String.valueOf(patientId));
+
+        ResponseEntity<com.fasterxml.jackson.databind.JsonNode> resp;
+        try {
+            resp = org.springframework.web.client.RestClient.create()
+                    .post()
+                    .uri("https://www.polaraccesslink.com/v3/users")       // Абсолютный URL!
+                    .header(org.springframework.http.HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON) // JSON проще
+                    .accept(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .body(body)                                            // Если получали 400 — это вылечит
+                    .retrieve()
+                    .toEntity(com.fasterxml.jackson.databind.JsonNode.class);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            int code = e.getStatusCode().value();
+            String err = e.getResponseBodyAsString();
+            if (code == 409) return new PolarRegisterResult(PolarRegisterStatus.ALREADY_REGISTERED, null, err);
+            if (code == 403) return new PolarRegisterResult(PolarRegisterStatus.FORBIDDEN, null, err);
+            if (code == 401) return new PolarRegisterResult(PolarRegisterStatus.OTHER, null,
+                    "401 (скорее не Polar). Проверьте, что URL именно polaraccesslink.com и Bearer-токен верный. Body: " + err);
+            return new PolarRegisterResult(PolarRegisterStatus.OTHER, null, "Error " + code + ": " + err);
+        }
+
+        int code = resp.getStatusCode().value();
+        if (code == 200) {
+
+            long polarUserId = resp.getBody().path("polar-user-id").asLong(0);
+            if (polarUserId > 0) conn.setExternalUserId(String.valueOf(polarUserId));
+            connections.save(conn);
+            return new PolarRegisterResult(PolarRegisterStatus.CREATED, null, null);
+        }
+        if (code == 409) return new PolarRegisterResult(PolarRegisterStatus.ALREADY_REGISTERED, null, null);
+        if (code == 403) return new PolarRegisterResult(PolarRegisterStatus.FORBIDDEN, null,
+                "User consents missing (403): пользователь не принял все обязательные согласия.");
+        return new PolarRegisterResult(PolarRegisterStatus.OTHER, null, "Unexpected response: " + code);
+    }
+
+    public enum PolarRegisterStatus { CREATED, ALREADY_REGISTERED, FORBIDDEN, OTHER }
+
+    public record PolarRegisterResult(PolarRegisterStatus status, String location, String message) {}
 }

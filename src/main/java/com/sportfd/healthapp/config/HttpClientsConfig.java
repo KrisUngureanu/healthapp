@@ -1,5 +1,6 @@
 package com.sportfd.healthapp.config;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,6 +46,14 @@ public class HttpClientsConfig {
         return RestClient.builder()
                 .baseUrl("https://www.polaraccesslink.com")
                 .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    @Bean
+    @Qualifier("polarAccessLink")
+    public RestClient polarAccessLinkRestClient(RestClient.Builder builder) {
+        return builder
+                .baseUrl("https://www.polaraccesslink.com/v3")
                 .build();
     }
 }

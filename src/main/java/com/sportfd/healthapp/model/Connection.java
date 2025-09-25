@@ -25,6 +25,7 @@ public class Connection {
     @Column(columnDefinition="text")
     private String scope;
     private String externalUserId;
+    private String member_id;
 
     public Connection() {}
 
