@@ -16,8 +16,10 @@ public class PolarTemperature {
     private Long id;
     private Long patientId;
     private String source_device_id;
-    private OffsetDateTime start_time;
-    private OffsetDateTime end_time;
+    @Column(name = "start_time")
+    private OffsetDateTime startTime;
+    @Column(name = "end_time")
+    private OffsetDateTime endTime;
     private String measurement_type;
     private String sensor_location;
 

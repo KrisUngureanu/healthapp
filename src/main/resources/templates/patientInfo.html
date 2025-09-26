@@ -551,6 +551,455 @@
                 </div>
             </div>
         </div>
+
+        <!-- POLAR -->
+        <div class="tab-pane fade show active"  th:if="${patient.device=='polar'}"  id="polar-pane" role="tabpanel" aria-labelledby="polar-tab">
+            <div th:if="${patient.device == 'polar' and patient.status == 'active'}" class="d-flex flex-column gap-3">
+                <!-- POLAR SUMMARY (опционально: краткая карточка профиля) -->
+                <div th:if="${polarUserInfo != null}" class="card">
+                    <div class="card-header"><strong>Polar User</strong></div>
+                    <div class="card-body d-flex gap-4 flex-wrap">
+                        <div><b>User ID:</b> <span th:text="${polarUserInfo.polarUserId}">-</span></div>
+                        <div><b>Name:</b> <span th:text="${polarUserInfo.firstName}">-</span> <span th:text="${polarUserInfo.lastName}">-</span></div>
+                        <div><b>Gender:</b> <span th:text="${polarUserInfo.gender}">-</span></div>
+                        <div><b>DOB:</b> <span th:text="${polarUserInfo.birthdate}">-</span></div>
+                        <div><b>Height (cm):</b> <span th:text="${polarUserInfo.heightCm}">-</span></div>
+                        <div><b>Weight (kg):</b> <span th:text="${polarUserInfo.weightKg}">-</span></div>
+                        <div><b>Registered:</b> <span th:text="${polarUserInfo.registrationDate != null ? #temporals.format(polarUserInfo.registrationDate, 'yyyy-MM-dd HH:mm') : '-'}">-</span></div>
+                    </div>
+                </div>
+
+                <!-- POLAR Activities -->
+                <div th:if="${#lists.isEmpty(polarActivities)}" class="alert alert-info mt-3">Нет активностей Polar за выбранный период.</div>
+                <div th:if="${not #lists.isEmpty(polarActivities)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Polar Activities (daily)</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-activities','polar_activities.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-activities-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-polar-activities-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-polar-activities" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Начало</th>
+                                <th>Конец</th>
+                                <th>Active</th>
+                                <th>Inactive</th>
+                                <th>Daily act</th>
+                                <th>Calories</th>
+                                <th>Active cal</th>
+                                <th>Steps</th>
+                                <th>Inact alerts</th>
+                                <th>Distance (m)</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="a : ${polarActivities}">
+                                <td th:text="${a.start_time != null ? #temporals.format(a.start_time,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${a.end_time != null ? #temporals.format(a.end_time,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${a.active_duration}">PT0S</td>
+                                <td th:text="${a.inactive_duration}">PT0S</td>
+                                <td th:text="${#numbers.formatDecimal(a.daily_activity,1,2)}">0.00</td>
+                                <td th:text="${a.calories}">0</td>
+                                <td th:text="${a.active_calories}">0</td>
+                                <td th:text="${a.steps}">0</td>
+                                <td th:text="${a.inactivity_alert_count}">0</td>
+                                <td th:text="${#numbers.formatDecimal(a.distance_from_steps,1,2)}">0.00</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- POLAR Cardio Load -->
+                <div th:if="${#lists.isEmpty(polarCardio)}" class="alert alert-info mt-3">Нет данных Cardio Load.</div>
+                <div th:if="${not #lists.isEmpty(polarCardio)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Polar Cardio Load</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-cardio','polar_cardio.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-cardio-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-polar-cardio-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-polar-cardio" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Status</th>
+                                <th>Ratio</th>
+                                <th>Cardio load</th>
+                                <th>Strain</th>
+                                <th>Tolerance</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="c : ${polarCardio}">
+                                <td th:text="${c.date != null ? #temporals.format(c.date,'yyyy-MM-dd') : '-'}">-</td>
+                                <td th:text="${c.cardio_load_status}">-</td>
+                                <td th:text="${#numbers.formatDecimal(c.cardio_load_ratio,1,3)}">0.000</td>
+                                <td th:text="${#numbers.formatDecimal(c.cardio_load,1,3)}">0.000</td>
+                                <td th:text="${#numbers.formatDecimal(c.strain,1,3)}">0.000</td>
+                                <td th:text="${#numbers.formatDecimal(c.tolerance,1,3)}">0.000</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- POLAR Exercises -->
+                <div th:if="${#lists.isEmpty(polarExercises)}" class="alert alert-info mt-3">Нет тренировок (Exercises).</div>
+                <div th:if="${not #lists.isEmpty(polarExercises)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Polar Exercises</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-ex','polar_exercises.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-ex-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-polar-ex-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-polar-ex" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Upload</th>
+                                <th>Start</th>
+                                <th>Offset (min)</th>
+                                <th>Device</th>
+                                <th>Device ID</th>
+                                <th>Duration</th>
+                                <th>Distance</th>
+                                <th>Sport</th>
+                                <th>Route</th>
+                                <th>Detail</th>
+                                <th>Avg HR</th>
+                                <th>Max HR</th>
+                                <th>Calories</th>
+                                <th>Fat %</th>
+                                <th>Carb %</th>
+                                <th>Prot %</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="e : ${polarExercises}">
+                                <td th:text="${e.upload_time != null ? #temporals.format(e.upload_time,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${e.start_time != null ? #temporals.format(e.start_time,'yyyy-MM-dd HH:mm:ss') : '-'}">-</td>
+                                <td th:text="${e.start_time_utc_offset}">0</td>
+                                <td th:text="${e.device}">-</td>
+                                <td th:text="${e.device_id}">-</td>
+                                <td th:text="${e.duration}">PT0S</td>
+                                <td th:text="${#numbers.formatDecimal(e.distance,1,3)}">0.000</td>
+                                <td th:text="${e.sport}">-</td>
+                                <td th:text="${e.has_route ? 'Да' : 'Нет'}">Нет</td>
+                                <td th:text="${e.detailed_sport_info}">-</td>
+                                <td th:text="${e.average_heart_rate}">-</td>
+                                <td th:text="${e.max_heart_rate}">-</td>
+                                <td th:text="${e.calories}">-</td>
+                                <td th:text="${e.fat_percentage}">-</td>
+                                <td th:text="${e.carbohydrate_percentage}">-</td>
+                                <td th:text="${e.protein_percentage}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- POLAR Heart Rate (CHR Samples) -->
+                <div th:if="${#lists.isEmpty(polarHeartRate)}" class="alert alert-info mt-3">Нет CHR сэмплов пульса.</div>
+                <div th:if="${not #lists.isEmpty(polarHeartRate)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Polar Heart Rate (CHR)</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-hr','polar_hr.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-hr-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-polar-hr-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-polar-hr" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Время</th>
+                                <th>BPM</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="h : ${polarHeartRate}">
+                                <td th:text="${h.date}">-</td>
+                                <td th:text="${h.sampleTime}">-</td>
+                                <td th:text="${h.bpm}">0</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- POLAR Nightly Recharge -->
+                <div th:if="${#lists.isEmpty(polarNightRecharge)}" class="alert alert-info mt-3">Нет Nightly Recharge.</div>
+                <div th:if="${not #lists.isEmpty(polarNightRecharge)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Polar Nightly Recharge</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-nr','polar_nightly_recharge.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-nr-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-polar-nr-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-polar-nr" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>HR avg</th>
+                                <th>BB avg</th>
+                                <th>HRV avg</th>
+                                <th>Breathing avg</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="n : ${polarNightRecharge}">
+                                <td th:text="${n.date != null ? #temporals.format(n.date,'yyyy-MM-dd') : '-'}">-</td>
+                                <td th:text="${n.heart_rate_avg}">0</td>
+                                <td th:text="${n.beat_to_beat_avg}">0</td>
+                                <td th:text="${n.heart_rate_variability_avg}">0</td>
+                                <td th:text="${#numbers.formatDecimal(n.breathing_rate_avg,1,3)}">0.000</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+
+                <div th:if="${#lists.isEmpty(polarSleep)}" class="alert alert-info mt-3">Нет данных сна.</div>
+                <div th:if="${not #lists.isEmpty(polarSleep)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Polar Sleep</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-sleep','polar_sleep.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-sleep-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-polar-sleep-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-polar-sleep" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Начало</th>
+                                <th>Конец</th>
+                                <th>Device</th>
+                                <th>Continuity</th>
+                                <th>Class</th>
+                                <th>Light</th>
+                                <th>Deep</th>
+                                <th>REM</th>
+                                <th>Unrec.</th>
+                                <th>Score</th>
+                                <th>Goal</th>
+                                <th>Rating</th>
+                                <th>Interr. total</th>
+                                <th>Short</th>
+                                <th>Long</th>
+                                <th>Cycles</th>
+                                <th>Dur score</th>
+                                <th>Solidity</th>
+                                <th>Regen</th>
+                                <th>Hypnogram</th>
+                                <th>HR samples</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="s : ${polarSleep}">
+                                <td th:text="${s.date}">-</td>
+                                <td th:text="${s.sleepStartTime != null ? #temporals.format(s.sleepStartTime,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${s.sleepEndTime != null ? #temporals.format(s.sleepEndTime,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${s.deviceId}">-</td>
+
+                                <td th:text="${s.continuity != null ? #numbers.formatDecimal(s.continuity,1,3) : '-'}">-</td>
+                                <td th:text="${s.continuityClass}">-</td>
+
+                                <td th:text="${s.lightSleep}">0</td>
+                                <td th:text="${s.deepSleep}">0</td>
+                                <td th:text="${s.remSleep}">0</td>
+                                <td th:text="${s.unrecognizedSleepStage}">0</td>
+
+                                <td th:text="${s.sleepScore}">0</td>
+                                <td th:text="${s.sleepGoal}">0</td>
+                                <td th:text="${s.sleepRating}">0</td>
+
+                                <td th:text="${s.totalInterruptionDuration}">0</td>
+                                <td th:text="${s.shortInterruptionDuration}">0</td>
+                                <td th:text="${s.longInterruptionDuration}">0</td>
+
+                                <td th:text="${s.sleepCycles}">0</td>
+
+                                <td th:text="${s.groupDurationScore}">0</td>
+                                <td th:text="${s.groupSolidityScore}">0</td>
+                                <td th:text="${s.groupRegenerationScore != null ? #numbers.formatDecimal(s.groupRegenerationScore,1,3) : '-'}">-</td>
+
+                                <!-- длинные JSON поля аккуратно усечём -->
+                                <td class="text-truncate" style="max-width:240px"
+                                    th:title="${s.hypnogramJson}"
+                                    th:text="${s.hypnogramJson}">-</td>
+                                <td class="text-truncate" style="max-width:240px"
+                                    th:title="${s.heartRateSamplesJson}"
+                                    th:text="${s.heartRateSamplesJson}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- POLAR SpO2 -->
+                <div th:if="${#lists.isEmpty(polarSpo)}" class="alert alert-info mt-3">Нет данных SpO₂.</div>
+                <div th:if="${not #lists.isEmpty(polarSpo)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Polar SpO₂</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-spo2','polar_spo2.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-spo2-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-polar-spo2-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-polar-spo2" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>SpO₂ %</th>
+                                <th>Avg HR</th>
+                                <th>HRV (ms)</th>
+                                <th>Class</th>
+                                <th>Status</th>
+                                <th>Altitude</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="o : ${polarSpo}">
+                                <td th:text="${o.start_time != null ? #temporals.format(o.start_time,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${o.end_time != null ? #temporals.format(o.end_time,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${o.blood_oxygen_percent}">-</td>
+                                <td th:text="${o.average_heart_rate_bpm}">-</td>
+                                <td th:text="${#numbers.formatDecimal(o.heart_rate_variability_ms,1,3)}">-</td>
+                                <td th:text="${o.spo2_class}">-</td>
+                                <td th:text="${o.test_status}">-</td>
+                                <td th:text="${#numbers.formatDecimal(o.altitude_meters,1,2)}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- POLAR Temperature (aggregate) -->
+                <div th:if="${#lists.isEmpty(polarTemperature)}" class="alert alert-info mt-3">Нет данных температуры.</div>
+                <div th:if="${not #lists.isEmpty(polarTemperature)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Polar Body Temperature (sessions)</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-temp','polar_temperature.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-temp-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-polar-temp-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-polar-temp" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Device</th>
+                                <th>Type</th>
+                                <th>Location</th>
+                                <th>Samples (raw)</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="t : ${polarTemperature}">
+                                <td th:text="${t.startTime != null ? #temporals.format(t.startTime,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${t.endTime != null ? #temporals.format(t.endTime,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${t.source_device_id}">-</td>
+                                <td th:text="${t.measurement_type}">-</td>
+                                <td th:text="${t.sensor_location}">-</td>
+                                <td class="text-truncate" style="max-width: 300px;" th:text="${t.samples}">[]</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- POLAR Temperature Samples (expanded points) -->
+                <div th:if="${#lists.isEmpty(polarTemperatureSamples)}" class="alert alert-info mt-3">Нет сэмплов температуры.</div>
+                <div th:if="${not #lists.isEmpty(polarTemperatureSamples)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Polar Temperature Samples</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-temp-samples','polar_temperature_samples.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-temp-samples-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-polar-temp-samples-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-polar-temp-samples" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Value</th>
+                                <th>Unit</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="s : ${polarTemperatureSamples}">
+                                <td th:text="${s.sampleTime != null ? #temporals.format(s.sampleTime,'yyyy-MM-dd HH:mm:ss') : '-'}">-</td>
+                                <td th:text="${#numbers.formatDecimal(s.value,1,3)}">0.000</td>
+                                <td th:text="${s.unit}">C</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- POLAR ECG Tests -->
+                <div th:if="${#lists.isEmpty(polarTestEcg)}" class="alert alert-info mt-3">Нет тестов ЭКГ.</div>
+                <div th:if="${not #lists.isEmpty(polarTestEcg)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Polar ECG</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-ecg','polar_ecg.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-ecg-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-polar-ecg-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-polar-ecg" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Avg HR</th>
+                                <th>HRV ms</th>
+                                <th>HRV level</th>
+                                <th>PTT sys</th>
+                                <th>PTT dia</th>
+                                <th>PTT QI</th>
+                                <th>Device</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="e : ${polarTestEcg}">
+                                <td th:text="${e.start_time != null ? #temporals.format(e.start_time,'yyyy-MM-dd HH:mm:ss') : '-'}">-</td>
+                                <td th:text="${e.end_time != null ? #temporals.format(e.end_time,'yyyy-MM-dd HH:mm:ss') : '-'}">-</td>
+                                <td th:text="${e.average_heart_rate_bpm}">-</td>
+                                <td th:text="${#numbers.formatDecimal(e.heart_rate_variability_ms,1,3)}">-</td>
+                                <td th:text="${e.heart_rate_variability_level}">-</td>
+                                <td th:text="${#numbers.formatDecimal(e.pulse_transit_time_systolic_ms,1,3)}">-</td>
+                                <td th:text="${#numbers.formatDecimal(e.pulse_transit_time_diastolic_ms,1,3)}">-</td>
+                                <td th:text="${#numbers.formatDecimal(e.pulse_transit_time_quality_index,1,3)}">-</td>
+                                <td th:text="${e.source_device_id}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
     </div>
 
     <!-- Скрытая форма sync (оставлена как есть) -->

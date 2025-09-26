@@ -244,7 +244,6 @@ public class PolarClient implements ProviderClient {
     }
 
     @Override
-    @Transactional
     public void syncSleep(Long pid, OffsetDateTime from, OffsetDateTime to) {
         LocalDate fromD = from.toLocalDate();
         LocalDate toD = to.toLocalDate();
@@ -510,7 +509,6 @@ public class PolarClient implements ProviderClient {
 
 
     @Override
-    @Transactional
     public void syncUserInfo(Long pid, OffsetDateTime from, OffsetDateTime to) {
         String token = requireToken(pid);
         Connection c = connections.findByPatientIdAndProvider(pid, Provider.POLAR)
@@ -653,11 +651,6 @@ public class PolarClient implements ProviderClient {
         }
 
 
-        try{
-            syncHeartRate(pid, from, to);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
 
     }
 
@@ -815,7 +808,6 @@ public class PolarClient implements ProviderClient {
 
 
     @Override
-    @Transactional
     public void syncTemperature(Long pid, OffsetDateTime from, OffsetDateTime to) {
         LocalDate fromD = from.toLocalDate();
         LocalDate toD = to.toLocalDate();
@@ -870,8 +862,8 @@ public class PolarClient implements ProviderClient {
 
                     entity.setPatientId(pid);
                     entity.setSource_device_id(d.sourceDeviceId());
-                    entity.setStart_time(startTs);
-                    entity.setEnd_time(parseFlexibleAdditional(d.endTime(), null));
+                    entity.setStartTime(startTs);
+                    entity.setEndTime(parseFlexibleAdditional(d.endTime(), null));
                     entity.setMeasurement_type(d.measurementType());
                     entity.setSensor_location(d.sensorLocation());
 
@@ -913,7 +905,6 @@ public class PolarClient implements ProviderClient {
     }
 
     @Override
-    @Transactional
     public void syncTestEcg(Long pid, OffsetDateTime from, OffsetDateTime to) {
         LocalDate fromD = from.toLocalDate();
         LocalDate toD = to.toLocalDate();

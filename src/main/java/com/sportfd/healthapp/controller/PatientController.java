@@ -2,6 +2,7 @@ package com.sportfd.healthapp.controller;
 
 import com.sportfd.healthapp.dto.PatientCreateRequest;
 import com.sportfd.healthapp.integration.oura.OuraService;
+import com.sportfd.healthapp.integration.polar.PolarService;
 import com.sportfd.healthapp.integration.whoop.WhoopService;
 import com.sportfd.healthapp.model.*;
 import com.sportfd.healthapp.repo.PatientRepository;
@@ -24,14 +25,15 @@ public class PatientController {
     private final PatientRepository patientRepository;
     private final OuraService ouraService;
     private final WhoopService whoopService;
-
-    public PatientController(PatientService patientService, PatientRepository patientRepository, OuraService ouraService, WhoopService whoopService) {
+    private final PolarService polarService;
+    public PatientController(PatientService patientService, PatientRepository patientRepository, OuraService ouraService, WhoopService whoopService, PolarService polarService) {
         this.patientService = patientService;
         this.patientRepository = patientRepository;
 
 
         this.ouraService = ouraService;
         this.whoopService = whoopService;
+        this.polarService = polarService;
     }
 
 
@@ -118,6 +120,40 @@ public class PatientController {
                 model.addAttribute("whoopWorkout", whoopWorkout);
 
 
+            } else if (device.equals("polar")){
+                List<PolarActivities> polarActivities = polarService.getPolarActivities(id);
+                model.addAttribute("polarActivities", polarActivities);
+
+                List<PolarCardio> polarCardio = polarService.getPolarCardio(id);
+                model.addAttribute("polarCardio", polarCardio);
+
+                List<PolarExercises> polarExercises = polarService.getPolarExercises(id);
+                model.addAttribute("polarExercises", polarExercises);
+
+
+                List<PolarHeartRate> polarHeartRate = polarService.getPolarHeartRate(id);
+                model.addAttribute("polarHeartRate", polarHeartRate);
+
+                List<PolarNightRecharge> polarNightRecharge = polarService.getPolarNightRecharge(id);
+                model.addAttribute("polarNightRecharge", polarNightRecharge);
+
+                List<PolarSleep> polarSleep = polarService.getPolarSleep(id);
+                model.addAttribute("polarSleep", polarSleep);
+
+                List<PolarSpo> polarSpo = polarService.getPolarSpo(id);
+                model.addAttribute("polarSpo", polarSpo);
+
+                List<PolarTemperature> polarTemperature = polarService.getPolarTemperature(id);
+                model.addAttribute("polarTemperature", polarTemperature);
+
+                List<PolarTemperatureSample> polarTemperatureSamples = polarService.getPolarTemperatureSamples(id);
+                model.addAttribute("polarTemperatureSamples", polarTemperatureSamples);
+
+                List<PolarTestECG> polarTestEcg = polarService.getPolarTestEcg(id);
+                model.addAttribute("polarTestEcg", polarTestEcg);
+
+                PolarUserInfo polarUserInfo = polarService.getPolarUserInfo(id).orElse(null);
+                model.addAttribute("polarUserInfo", polarUserInfo);
             }
 
         }

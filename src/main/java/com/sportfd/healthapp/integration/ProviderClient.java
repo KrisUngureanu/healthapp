@@ -31,10 +31,10 @@ public interface ProviderClient {
     default void syncTemperature(Long pid, OffsetDateTime from, OffsetDateTime to) {}
     default void syncTestEcg(Long pid, OffsetDateTime from, OffsetDateTime to) {}
     default void syncUserInfo(Long pid, OffsetDateTime from, OffsetDateTime to) {}
-    @Transactional
+
     void syncHeartRate(Long patientId, OffsetDateTime from, OffsetDateTime to);
 
-    @Transactional
+
     void syncSpO2(Long patientId, OffsetDateTime from, OffsetDateTime to);
 
     default void deleteUser(Long pid, boolean alsoDisconnectLocally){}
