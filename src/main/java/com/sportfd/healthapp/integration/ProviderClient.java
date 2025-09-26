@@ -3,7 +3,6 @@ package com.sportfd.healthapp.integration;
 import com.sportfd.healthapp.model.enums.Provider;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 public interface ProviderClient {
@@ -20,21 +19,23 @@ public interface ProviderClient {
     default void syncRecovery(Long pid, OffsetDateTime from, OffsetDateTime to){};
     default void syncWorkout(Long pid, OffsetDateTime from, OffsetDateTime to) {};
     void syncAll(Long pid, OffsetDateTime from, OffsetDateTime to);
-    default int syncSleepDaily(Long patientId, LocalDate start, LocalDate end) { return 0; }
-    default int syncSleepSessions(Long patientId, OffsetDateTime from, OffsetDateTime to) { return 0; }
-    default int syncActivityDaily(Long patientId, OffsetDateTime from, OffsetDateTime to) { return 0; }
-    default int syncActivitySessions(Long patientId, OffsetDateTime from, OffsetDateTime to) { return 0; }
-    default int syncReadinessDaily(Long pid, OffsetDateTime from, OffsetDateTime to) { return 0; }
-
-
-    default void syncProfile(Long patientId) {
+    default void syncSleepSessions(Long patientId, OffsetDateTime from, OffsetDateTime to) {
     }
-    default int syncBodyMeasurement(Long patientId) { return 0; }
+    default void syncActivityDaily(Long patientId, OffsetDateTime from, OffsetDateTime to) {
+    }
+    default void syncReadinessDaily(Long pid, OffsetDateTime from, OffsetDateTime to) {
+    }
 
+    default void syncCardio(Long pid, OffsetDateTime from, OffsetDateTime to) {}
+    default void syncNightRecharge(Long pid, OffsetDateTime from, OffsetDateTime to) {}
+    default void syncTemperature(Long pid, OffsetDateTime from, OffsetDateTime to) {}
+    default void syncTestEcg(Long pid, OffsetDateTime from, OffsetDateTime to) {}
+    default void syncUserInfo(Long pid, OffsetDateTime from, OffsetDateTime to) {}
+    @Transactional
+    void syncHeartRate(Long patientId, OffsetDateTime from, OffsetDateTime to);
 
     @Transactional
-    int syncHeartRate(Long patientId, OffsetDateTime from, OffsetDateTime to);
+    void syncSpO2(Long patientId, OffsetDateTime from, OffsetDateTime to);
 
-    @Transactional
-    int syncSpO2(Long patientId, OffsetDateTime from, OffsetDateTime to);
+    default void deleteUser(Long pid, boolean alsoDisconnectLocally){}
 }

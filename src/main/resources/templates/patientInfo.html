@@ -109,10 +109,29 @@
                             <button class="btn btn-outline-light"><i class="bi bi-power"></i> Отключить Whoop</button>
                         </form>
 
+                        <form th:if="${patient.status == 'active' and patient.device == 'polar'}"
+                              th:action="@{/patients/{id}/{provider}/disconnect(id=${patient.id}, provider='polar')}" method="post" class="mb-0">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <button class="btn btn-outline-light"><i class="bi bi-power"></i> Отключить Polar</button>
+                        </form>
+
                         <form th:if="${st == 'active'}" th:action="@{/patients/{id}/integrations/{provider}/syncAll(id=${patient.id}, provider=${patient.device})}" method="post" class="mb-0">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                             <button class="btn btn-outline-light"><i class="bi bi-cloud-arrow-down"></i> Получить данные</button>
                         </form>
+
+                        <form th:if="${st == 'active'}"
+                              th:action="@{/patients/{id}/integrations/{provider}/deleteUser(id=${patient.id}, provider=${patient.device})}"
+                              method="post" class="mb-0">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <input type="hidden" name="_method" value="delete"/>
+                            <button type="submit" class="btn btn-outline-light">
+                                <i class="bi bi-cloud-arrow-down"></i> Удалить пользователя
+                            </button>
+                        </form>
+
+
+
 
                         <!-- Приглашения, если не активен -->
                         <div th:if="${patient.status != 'active'}" class="d-flex gap-2 flex-wrap">

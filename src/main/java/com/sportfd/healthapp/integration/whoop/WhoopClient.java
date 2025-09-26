@@ -177,13 +177,11 @@ public class WhoopClient implements ProviderClient {
     }
 
     @Override
-    public int syncHeartRate(Long patientId, OffsetDateTime from, OffsetDateTime to) {
-        return 0;
+    public void syncHeartRate(Long patientId, OffsetDateTime from, OffsetDateTime to) {
     }
 
     @Override
-    public int syncSpO2(Long patientId, OffsetDateTime from, OffsetDateTime to) {
-        return 0;
+    public void syncSpO2(Long patientId, OffsetDateTime from, OffsetDateTime to) {
     }
 
     @Override

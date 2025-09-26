@@ -146,13 +146,13 @@ public class OuraClient implements ProviderClient {
 
 
     @Override
-    public int syncReadinessDaily(Long pid, OffsetDateTime from, OffsetDateTime to) {
+    public void syncReadinessDaily(Long pid, OffsetDateTime from, OffsetDateTime to) {
         String base = UriComponentsBuilder.fromPath("/v2/usercollection/daily_activity")
                 .queryParam("start_date", from.toLocalDate().toString())
                 .queryParam("end_date",   to.toLocalDate().toString())
                 .build().encode().toUriString();
         Connection c = requireConn(pid);
-        return paged(base, from, to, c, node -> {
+        paged(base, from, to, c, node -> {
             var data = node.path("data");
             for (JsonNode record : data) {
                 String record_id = record.path("id").asText();
@@ -235,28 +235,28 @@ public class OuraClient implements ProviderClient {
 
 
     @Override
-    public int syncActivityDaily(Long pid, OffsetDateTime from, OffsetDateTime to) {
+    public void syncActivityDaily(Long pid, OffsetDateTime from, OffsetDateTime to) {
         String base = UriComponentsBuilder.fromPath("/v2/usercollection/daily_readiness")
                 .queryParam("start_date", from.toLocalDate().toString())
                 .queryParam("end_date",   to.toLocalDate().toString())
                 .build().encode().toUriString();
         Connection c = requireConn(pid);
-        return paged(base, from, to, c, node -> {
+        paged(base, from, to, c, node -> {
             var data = node.path("data");
             for (JsonNode record : data) {
                 String record_id = record.path("id").asText();
                 JsonNode contributors = record.path("contributors");
                 int activity_balance = contributors.path("activity_balance").asInt();
-                int body_temperature= contributors.path("body_temperature").asInt();
-                int hrv_balance= contributors.path("hrv_balance").asInt();
-                int previous_day_activity= contributors.path("previous_day_activity").asInt();
-                int previous_night= contributors.path("previous_night").asInt();
-                int recovery_index= contributors.path("recovery_index").asInt();
-                int resting_heart_rate= contributors.path("resting_heart_rate").asInt();
-                int sleep_balance= contributors.path("sleep_balance").asInt();
-                int sleep_regularity= contributors.path("sleep_regularity").asInt();
+                int body_temperature = contributors.path("body_temperature").asInt();
+                int hrv_balance = contributors.path("hrv_balance").asInt();
+                int previous_day_activity = contributors.path("previous_day_activity").asInt();
+                int previous_night = contributors.path("previous_night").asInt();
+                int recovery_index = contributors.path("recovery_index").asInt();
+                int resting_heart_rate = contributors.path("resting_heart_rate").asInt();
+                int sleep_balance = contributors.path("sleep_balance").asInt();
+                int sleep_regularity = contributors.path("sleep_regularity").asInt();
                 String day = record.path("day").asText(null);
-                int score= record.path("activity_balance").asInt();
+                int score = record.path("activity_balance").asInt();
                 OffsetDateTime timeRecord = OffsetDateTime.parse(record.path("timestamp").asText());
 
 
@@ -383,13 +383,13 @@ public class OuraClient implements ProviderClient {
 
     @Override
     @Transactional
-    public int syncSleepSessions(Long pid, OffsetDateTime from, OffsetDateTime to) {
+    public void syncSleepSessions(Long pid, OffsetDateTime from, OffsetDateTime to) {
         String base = UriComponentsBuilder.fromPath("/v2/usercollection/daily_sleep")
                 .queryParam("start_date", from.toLocalDate().toString())
                 .queryParam("end_date",   to.toLocalDate().toString())
                 .build().encode().toUriString();
         Connection c = requireConn(pid);
-        return paged(base, from, to, c, node -> {
+        paged(base, from, to, c, node -> {
             var data = node.path("data");
             for (JsonNode record : data) {
                 String record_id = record.path("id").asText();
@@ -432,13 +432,13 @@ public class OuraClient implements ProviderClient {
 
 
     @Override
-    public int syncHeartRate(Long pid, OffsetDateTime from, OffsetDateTime to) {
+    public void syncHeartRate(Long pid, OffsetDateTime from, OffsetDateTime to) {
         String base = UriComponentsBuilder.fromPath("/v2/usercollection/heartrate")
                 .queryParam("start_date", from.toLocalDateTime().toString())
                 .queryParam("end_date",   to.toLocalDateTime().toString())
                 .build().encode().toUriString();
         Connection c = requireConn(pid);
-        return paged(base, from, to, c, node -> {
+        paged(base, from, to, c, node -> {
             var data = node.path("data");
             for (JsonNode record : data) {
                 int bpm = record.path("bpm").asInt();
@@ -461,13 +461,13 @@ public class OuraClient implements ProviderClient {
     }
 
     @Override
-    public int syncSpO2(Long pid, OffsetDateTime from, OffsetDateTime to) {
+    public void syncSpO2(Long pid, OffsetDateTime from, OffsetDateTime to) {
         String base = UriComponentsBuilder.fromPath("/v2/usercollection/daily_spo2")
                 .queryParam("start_date", from.toLocalDate().toString())
                 .queryParam("end_date",   to.toLocalDate().toString())
                 .build().encode().toUriString();
         Connection c = requireConn(pid);
-        return paged(base, from, to, c, node -> {
+        paged(base, from, to, c, node -> {
             var data = node.path("data");
             for (JsonNode record : data) {
                 String record_id = record.path("id").asText();
@@ -491,7 +491,7 @@ public class OuraClient implements ProviderClient {
 
 
     @Override
-    public void syncProfile(Long patientId) {
+    public void syncUserInfo(Long patientId, OffsetDateTime from, OffsetDateTime to) {
         Connection c = requireConn(patientId);
         JsonNode root = getJson("/v2/usercollection/personal_info", c.getAccessToken());
 
