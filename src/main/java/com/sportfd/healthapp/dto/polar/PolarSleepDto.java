@@ -1,6 +1,8 @@
 package com.sportfd.healthapp.dto.polar;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -35,6 +37,6 @@ public record PolarSleepDto(
         @JsonProperty("group_regeneration_score") Double groupRegenerationScore,
 
 
-        @JsonProperty("hypnogram") Map<String, Integer> hypnogram,
-        @JsonProperty("heart_rate_samples") Map<String, Integer> heartRateSamples
+        @JsonProperty("hypnogram") JsonNode hypnogram,
+        @JsonProperty("heart_rate_samples") JsonNode heartRateSamples
 ) {}

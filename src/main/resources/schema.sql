@@ -483,7 +483,25 @@ create table if not exists polar_temperature_sample
     created_at      timestamptz default now(),
     updated_at      timestamptz default now()
 );
-
+create table if not exists hypnogram
+(
+    id              bigserial primary key,
+    patient_id      bigint,
+    sleep_id        bigint,
+    sleep_time      varchar(16),
+    type_id         bigint,
+    type_name       varchar(16),
+    user_polar      varchar(128)
+);
+create table if not exists heart_rate_samples_sleep
+(
+    id              bigserial primary key,
+    patient_id      bigint,
+    sleep_id        bigint,
+    sleep_time      varchar(16),
+    value_hr         bigint,
+    user_polar      varchar(128)
+);
 
 insert into users(email, role, user_id, username, password)
 values ('dame_un_beso@mail.ru', 'ADMIN', 1, 'admin', '$2a$12$kjIiKlk/ZFPEVHVRV970we5v2Sh4VIW54kVyZJZxXh6wCwLwx7QG6')

@@ -25,7 +25,8 @@ public class PolarService {
     private final PolarTemperatureSampleRepository polarTemperatureSampleRepository;
     private final PolarTestECGRepository polarTestECGRepository;
     private final PolarUserInfoRepository polarUserInfoRepository;
-
+    private final PolarHypnogramRepository polarHypnogramRepository;
+    private final PolarHeartRateSamplesSleepRepository polarHeartRateSamplesSleepRepository;
 
     public List<PolarActivities> getPolarActivities(Long pid){
         return polarActivitiesRepository.findByPatientId(pid);
@@ -51,6 +52,15 @@ public class PolarService {
     public List<PolarSleep> getPolarSleep(Long pid) {
         return polarSleepRepository.findByPatientId(pid);
     }
+
+    public List<PolarHypnogram> getPolarHypnogram(Long sleepid){
+        return polarHypnogramRepository.findAllBySleepId(sleepid);
+    }
+
+    public List<PolarHeartRateSamplesSleep> getPolarHRSleep(Long sleepid){
+        return polarHeartRateSamplesSleepRepository.findAllBySleepId(sleepid);
+    }
+
 
     public List<PolarSpo> getPolarSpo(Long pid) {
         return polarSpoRepository.findByPatientId(pid);

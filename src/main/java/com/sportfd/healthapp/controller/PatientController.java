@@ -138,6 +138,15 @@ public class PatientController {
                 model.addAttribute("polarNightRecharge", polarNightRecharge);
 
                 List<PolarSleep> polarSleep = polarService.getPolarSleep(id);
+                if (polarSleep!= null && !polarSleep.isEmpty()){
+                   PolarSleep polarSleepLast = polarSleep.getLast();
+                   Long sleepId = polarSleepLast.getId();
+                   List<PolarHypnogram> polarHypnograms = polarService.getPolarHypnogram(sleepId);
+                   model.addAttribute("polarHypnograms", polarHypnograms);
+
+                   List<PolarHeartRateSamplesSleep> polarHeartRateSamplesSleeps = polarService.getPolarHRSleep(sleepId);
+                   model.addAttribute("polarHeartRateSamplesSleeps", polarHeartRateSamplesSleeps);
+                }
                 model.addAttribute("polarSleep", polarSleep);
 
                 List<PolarSpo> polarSpo = polarService.getPolarSpo(id);

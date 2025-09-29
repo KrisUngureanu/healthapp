@@ -20,8 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Base64;
+import java.util.*;
 
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
@@ -32,8 +31,6 @@ import static com.sportfd.healthapp.util.TimeUtil.parseFlexibleAdditional;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Component
@@ -66,10 +63,13 @@ public class PolarClient implements ProviderClient {
     private final PolarTestECGRepository polarTestECGRepository;
     private final PolarUserInfoRepository polarUserInfoRepository;
     private final PolarTemperatureSampleRepository polarTemperatureSampleRepository;
+    private final PolarHypnogramRepository polarHypnogramRepository;
+    private final PolarHeartRateSamplesSleepRepository polarHeartRateSamplesSleepRepository;
+
 
     public PolarClient(@Qualifier("polarRestClient") RestClient polar, @Qualifier("polarAccessLink") RestClient accessLink,
                        ConnectionRepository connections,
-                       PatientRepository patientRepository, PolarSleepRepository polarSleepRepository, PolarActivitiesRepository polarActivitiesRepository, PolarCardioRepository polarCardioRepository, PolarExercisesRepository polarExercisesRepository, PolarHeartRateRepository polarHeartRateRepository, PolarNightRechargeRepository polarNightRechargeRepository, PolarSpoRepository polarSpoRepository, PolarTemperatureRepository polarTemperatureRepository, PolarTestECGRepository polarTestECGRepository, PolarUserInfoRepository polarUserInfoRepository, PolarTemperatureSampleRepository polarTemperatureSampleRepository) {
+                       PatientRepository patientRepository, PolarSleepRepository polarSleepRepository, PolarActivitiesRepository polarActivitiesRepository, PolarCardioRepository polarCardioRepository, PolarExercisesRepository polarExercisesRepository, PolarHeartRateRepository polarHeartRateRepository, PolarNightRechargeRepository polarNightRechargeRepository, PolarSpoRepository polarSpoRepository, PolarTemperatureRepository polarTemperatureRepository, PolarTestECGRepository polarTestECGRepository, PolarUserInfoRepository polarUserInfoRepository, PolarTemperatureSampleRepository polarTemperatureSampleRepository, PolarHypnogramRepository polarHypnogramRepository, PolarHeartRateSamplesSleepRepository polarHeartRateSamplesSleepRepository) {
         this.polar = polar;
         this.accessLink = accessLink;
         this.connections = connections;
@@ -85,33 +85,45 @@ public class PolarClient implements ProviderClient {
         this.polarTestECGRepository = polarTestECGRepository;
         this.polarUserInfoRepository = polarUserInfoRepository;
         this.polarTemperatureSampleRepository = polarTemperatureSampleRepository;
+        this.polarHypnogramRepository = polarHypnogramRepository;
+
+        this.polarHeartRateSamplesSleepRepository = polarHeartRateSamplesSleepRepository;
     }
 
     private record TempPoint(OffsetDateTime ts, Float value, String unit) {
     }
-    public enum PolarDeleteStatus { DELETED, NOT_FOUND, FORBIDDEN, UNAUTHORIZED, OTHER }
 
-    public record PolarDeleteResult(
-            PolarDeleteStatus status,
-            String message
-    ) {}
+    private record HymnoPoint(String time, long  value) {
+    }
+
+
+
     @Override
     public Provider provider() {
         return Provider.POLAR;
     }
-
+    private static String stageName(long id) {
+        return switch ((int) id) {
+            case 0 -> "AWAKE";
+            case 1 -> "LIGHT";
+            case 2 -> "DEEP";
+            case 3 -> "REM";
+            case 4 -> "UNKNOWN";
+            default -> "UNKNOWN";
+        };
+    }
 
     @Override
     public String buildAuthorizeUrl(String state, String scopes, String redirect) {
         String ru = (redirect != null && !redirect.isBlank()) ? redirect : redirectUri;
-        String scope = (scopes != null && !scopes.isBlank()) ? scopes : DEFAULT_SCOPE;
+
 
         return UriComponentsBuilder
                 .fromHttpUrl(POLAR_AUTH_BASE)
                 .queryParam("response_type", "code")
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", ru)
-//                .queryParam("scope", scope)
+
 
                 .queryParam("state", Objects.toString(state, ""))
                 .encode(StandardCharsets.UTF_8)
@@ -292,16 +304,54 @@ public class PolarClient implements ProviderClient {
             ps.setGroupSolidityScore(dto.groupSolidityScore());
             ps.setGroupRegenerationScore(dto.groupRegenerationScore());
 
-            try {
-                if (dto.hypnogram() != null)
-                    ps.setHypnogramJson(om.writeValueAsString(dto.hypnogram()));
-                if (dto.heartRateSamples() != null)
-                    ps.setHeartRateSamplesJson(om.writeValueAsString(dto.heartRateSamples()));
-            } catch (JsonProcessingException e) {
-
-            }
 
             polarSleepRepository.save(ps);
+
+            if (dto.hypnogram() != null && !dto.hypnogram().isNull()) {
+                List<HymnoPoint> hypno = extractPoints(dto.hypnogram());
+          //      polarHypnogramRepository.deleteBySleepId(ps.getId());
+
+                List<PolarHypnogram> rows = new ArrayList<>(hypno.size());
+                for (HymnoPoint p : hypno) {
+
+                    List<PolarHypnogram> hexist = polarHypnogramRepository.findAllByPatientIdAndSleepId(pid, ps.getId());
+                    if (hexist == null){
+                        PolarHypnogram h = new PolarHypnogram();
+                        h.setPatientId(pid);
+                        h.setSleepId(ps.getId());
+                        h.setSleepTime(p.time());
+                        h.setTypeId(p.value());
+                        h.setTypeName(stageName(p.value()));
+                        h.setUserPolar(dto.polarUserUrl());
+                        rows.add(h);
+                    }
+
+                }
+                if (!rows.isEmpty()) polarHypnogramRepository.saveAll(rows);
+            }
+
+
+            if (dto.heartRateSamples() != null && !dto.heartRateSamples().isNull()) {
+                List<HymnoPoint> hr = extractPoints(dto.heartRateSamples());
+              //  polarHeartRateSamplesSleepRepository.deleteBySleepId(ps.getId());
+
+                List<PolarHeartRateSamplesSleep> rows = new ArrayList<>(hr.size());
+                for (HymnoPoint p : hr) {
+
+                    List<PolarHeartRateSamplesSleep> rex = polarHeartRateSamplesSleepRepository.findAllByPatientIdAndSleepId(pid, ps.getId());
+                    if (rex == null){
+                        PolarHeartRateSamplesSleep r = new PolarHeartRateSamplesSleep();
+                        r.setPatientId(pid);
+                        r.setSleepId(ps.getId());
+                        r.setSleepTime(p.time());
+                        r.setValueHr(p.value());
+                        r.setUserPolar(dto.polarUserUrl());
+                        rows.add(r);
+                    }
+
+                }
+                if (!rows.isEmpty()) polarHeartRateSamplesSleepRepository.saveAll(rows);
+            }
 
         }
 
@@ -694,7 +744,8 @@ public class PolarClient implements ProviderClient {
     public void syncNightRecharge(Long pid, OffsetDateTime from, OffsetDateTime to) {
         String token = requireToken(pid);
         LocalDate date = from.toLocalDate().minusDays(1);
-        ResponseEntity<PolarNightRechargeDto> resp;
+        ResponseEntity<PolarNightRechargeDto> resp = null;
+        boolean isOk = true;
         try {
             resp = RestClient.create()
                     .get()
@@ -708,26 +759,30 @@ public class PolarClient implements ProviderClient {
                 throw new IllegalStateException("Polar Nightly Recharge: 403 (user consents missing).");
             if (e.getStatusCode() == HttpStatus.UNAUTHORIZED)
                 throw new IllegalStateException("Polar Nightly Recharge: 401 (invalid/expired token).");
-            throw new IllegalStateException("Polar Nightly Recharge error " + e.getStatusCode().value() + ": " + e.getResponseBodyAsString());
+//            throw new IllegalStateException("Polar Nightly Recharge error " + e.getStatusCode().value() + ": " + e.getResponseBodyAsString());
+            isOk = false;
         }
 
-        var body = resp.getBody();
+        if(isOk){
+            var body = resp.getBody();
 
 
-        OffsetDateTime dayUtc = parseFlexibleAdditional(date.toString(), null);
+            OffsetDateTime dayUtc = parseFlexibleAdditional(date.toString(), null);
 
-        var entity = polarNightRechargeRepository.findByPatientIdAndDate(pid, dayUtc)
-                .orElseGet(PolarNightRecharge::new);
+            var entity = polarNightRechargeRepository.findByPatientIdAndDate(pid, dayUtc)
+                    .orElseGet(PolarNightRecharge::new);
 
-        entity.setPatientId(pid);
-        entity.setDate(dayUtc);
-        if (body.heart_rate_avg() != null) entity.setHeart_rate_avg(body.heart_rate_avg());
-        if (body.beat_to_beat_avg() != null) entity.setBeat_to_beat_avg(body.beat_to_beat_avg());
-        if (body.heart_rate_variability_avg() != null)
-            entity.setHeart_rate_variability_avg(body.heart_rate_variability_avg());
-        if (body.breathing_rate_avg() != null) entity.setBreathing_rate_avg(body.breathing_rate_avg());
+            entity.setPatientId(pid);
+            entity.setDate(dayUtc);
+            if (body.heart_rate_avg() != null) entity.setHeart_rate_avg(body.heart_rate_avg());
+            if (body.beat_to_beat_avg() != null) entity.setBeat_to_beat_avg(body.beat_to_beat_avg());
+            if (body.heart_rate_variability_avg() != null)
+                entity.setHeart_rate_variability_avg(body.heart_rate_variability_avg());
+            if (body.breathing_rate_avg() != null) entity.setBreathing_rate_avg(body.breathing_rate_avg());
 
-        polarNightRechargeRepository.save(entity);
+            polarNightRechargeRepository.save(entity);
+        }
+
 
     }
 
@@ -877,7 +932,7 @@ public class PolarClient implements ProviderClient {
 
 
                     if (entity.getId() != null) {
-                        polarTemperatureSampleRepository.deleteByTemperatureId(entity.getId());
+                   //     polarTemperatureSampleRepository.deleteByTemperatureId(entity.getId());
                     }
 
 
@@ -1049,6 +1104,40 @@ public class PolarClient implements ProviderClient {
         }
         return out;
     }
+
+
+    private static List<HymnoPoint> extractPoints(JsonNode node) {
+        List<HymnoPoint> out = new ArrayList<>();
+        if (node == null || node.isNull()) return out;
+
+        if (node.isObject()) {
+            node.fields().forEachRemaining(e -> {
+                String t = e.getKey();
+                JsonNode v = e.getValue();
+                if (t != null && v != null && v.isNumber()) {
+                    out.add(new HymnoPoint(t, v.asLong()));
+                }
+            });
+        } else if (node.isArray()) {
+            for (JsonNode it : node) {
+                if (it != null && it.isObject()) {
+                    String t = it.path("time").asText(null);
+                    JsonNode v = it.get("value");
+                    if (t != null && v != null && v.isNumber()) {
+                        out.add(new HymnoPoint(t, v.asLong()));
+                    }
+                }
+            }
+        }
+
+        // сортировка по времени HH:mm
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm");
+        out.sort(Comparator.comparing(p -> LocalTime.parse(p.time(), fmt)));
+        return out;
+    }
+
+
+
 
     private static OffsetDateTime parseSampleTime(JsonNode n, Integer offsetMinutes) {
         // "time": string ISO / без смещения / с Z

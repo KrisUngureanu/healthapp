@@ -849,6 +849,65 @@
                     </div>
                 </div>
 
+                <div th:if="${#lists.isEmpty(polarHypnograms)}" class="alert alert-info mt-3">Нет данных о гипнограмме сна.</div>
+                <div th:if="${not #lists.isEmpty(polarHypnograms)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Polar Hypnograms</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-hypnosleep','polar_hypnosleep.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-hypnosleep-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-polar-hypnosleep-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-polar-hypnosleep" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Время</th>
+                                <th>Тип сна</th>
+
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="s : ${polarHypnograms}">
+                                <td th:text="${s.sleepTime}">-</td>
+                                <td th:text="${s.typeName}">-</td>
+
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+
+                <div th:if="${#lists.isEmpty(polarHeartRateSamplesSleeps)}" class="alert alert-info mt-3">Нет данных о сердцебиении во время сна.</div>
+                <div th:if="${not #lists.isEmpty(polarHeartRateSamplesSleeps)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Polar HR sleep</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-hrsleep','polar_hrsleep.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-hrsleep-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-polar-hrleep-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-polar-hrsleep" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Время</th>
+                                <th>Значение</th>
+
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="s : ${polarHeartRateSamplesSleeps}">
+                                <td th:text="${s.sleepTime}">-</td>
+                                <td th:text="${s.valueHr}">-</td>
+
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- POLAR SpO2 -->
                 <div th:if="${#lists.isEmpty(polarSpo)}" class="alert alert-info mt-3">Нет данных SpO₂.</div>
                 <div th:if="${not #lists.isEmpty(polarSpo)}" class="card mt-3">
