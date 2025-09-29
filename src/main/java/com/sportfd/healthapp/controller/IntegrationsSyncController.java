@@ -162,6 +162,22 @@ public class IntegrationsSyncController {
         return "redirect:/patients/" + id;
     }
 
+
+
+    @PostMapping("/patients/{id}/integrations/garmin/syncSleep")
+    @PreAuthorize("hasAnyRole('DOCTOR','ADMIN')")
+    public String syncGarminSleep(@PathVariable Long id,
+                                 @RequestParam(defaultValue="7") int days){
+        var client = clients.get(Provider.GARMIN);
+
+        OffsetDateTime from = OffsetDateTime.now().minusDays(1);
+        OffsetDateTime to = OffsetDateTime.now();
+        client.syncSleep(id, from, to);
+
+        return "redirect:/patients/" + id;
+    }
+
+
     @PostMapping("/patients/{id}/integrations/polar/syncActivities")
     @PreAuthorize("hasAnyRole('DOCTOR','ADMIN')")
     public String syncPolarActivities(@PathVariable Long id,
@@ -284,16 +300,19 @@ public class IntegrationsSyncController {
 
         return "redirect:/patients/" + id;
     }
-    @DeleteMapping("/patients/{id}/integrations/polar/deleteUser")
+    @DeleteMapping("/patients/{id}/integrations/{provider}/deleteUser")
     @PreAuthorize("hasAnyRole('DOCTOR','ADMIN')")
-    public String deleteUser(@PathVariable Long id,
+    public String deleteUser(@PathVariable Long id, @PathVariable String provider,
                                    @RequestParam(defaultValue="7") int days){
-        var client = clients.get(Provider.POLAR);
+        String providername = provider.toUpperCase();
+        var client = clients.get(Provider.valueOf(providername));
 
 
         client.deleteUser(id, true);
 
         return "redirect:/";
     }
+
+
 
 }

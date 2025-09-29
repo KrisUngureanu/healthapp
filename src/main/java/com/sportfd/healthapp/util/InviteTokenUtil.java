@@ -66,6 +66,8 @@ public class InviteTokenUtil {
             partUrl = "/oauth/whoop/start?t=";
         } else if (provider.equals("polar")) {
             partUrl = "/oauth/polar/start?t=";
+        } else if (provider.equals("garmin")){
+            partUrl = "/oauth/garmin/start?t=";
         }
         return baseUrl + partUrl + encT;
     }

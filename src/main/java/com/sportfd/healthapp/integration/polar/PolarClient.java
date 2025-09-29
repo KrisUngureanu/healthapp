@@ -1185,8 +1185,8 @@ public class PolarClient implements ProviderClient {
     @Override
     @Transactional
     public void deleteUser(Long pid, boolean alsoDisconnectLocally) {
-        String token = requireToken(pid);               // как у тебя в клиенте
-        String userId = requireExternalUserId(pid);     // берём из Connection.externalUserId (с обрезкой URL)
+        String token = requireToken(pid);
+        String userId = requireExternalUserId(pid);
 
         ResponseEntity<Void> resp = null;
         try {

@@ -11,6 +11,10 @@ public interface ProviderClient {
     // OAuth
     String buildAuthorizeUrl(String state, String scopes, String redirectUri);
     void exchangeCodeAndSave(Long patientId, String code);
+
+    @Transactional
+    default void exchangeCodeAndSave(Long patientId, String code, String state){};
+    default void fillExternalUserId(Long patientId){}
     void disconnect(Long patientId);
 
 

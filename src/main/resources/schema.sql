@@ -502,6 +502,54 @@ create table if not exists heart_rate_samples_sleep
     value_hr         bigint,
     user_polar      varchar(128)
 );
+create table if not exists garmin_webhook_events
+(
+    id           bigserial primary key,
+    patient_id   bigint,
+    provider     varchar,
+    event_type   varchar(256),
+    user_id      varchar,
+    summary_id   varchar(16),
+    payload_json varchar(256),
+    received_at  timestamp with time zone
+);
+create table if not exists garmin_activity (
+                                               id bigserial primary key,
+                                               patient_id bigint not null,
+                                               activity_id varchar(255) unique,
+                                               sport varchar(255),
+                                               start_time timestamptz,
+                                               end_time timestamptz,
+                                               avg_hr int,
+                                               max_hr int,
+                                               calories int,
+                                               distance_meters real,
+                                               payload_json text
+);
+
+create table if not exists garmin_daily_summary (
+                                                    id bigserial primary key,
+                                                    patient_id bigint not null,
+                                                    summary_id varchar(255) unique,
+                                                    day varchar(20),          -- формат YYYY-MM-DD
+                                                    steps int,
+                                                    calories int,
+                                                    stress int,
+                                                    body_battery int,
+                                                    payload_json text,
+                                                    updated_at timestamptz
+);
+
+create table if not exists garmin_sleep (
+                                            id bigserial primary key,
+                                            patient_id bigint not null,
+                                            sleep_id varchar(255) unique,
+                                            start_time timestamptz,
+                                            end_time timestamptz,
+                                            score int,
+                                            duration_sec int,
+                                            payload_json text
+);
 
 insert into users(email, role, user_id, username, password)
 values ('dame_un_beso@mail.ru', 'ADMIN', 1, 'admin', '$2a$12$kjIiKlk/ZFPEVHVRV970we5v2Sh4VIW54kVyZJZxXh6wCwLwx7QG6')

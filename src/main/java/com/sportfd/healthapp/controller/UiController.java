@@ -1,5 +1,6 @@
 package com.sportfd.healthapp.controller;
 
+import com.sportfd.healthapp.integration.ProviderClients;
 import com.sportfd.healthapp.integration.polar.PolarClient;
 import com.sportfd.healthapp.model.Connection;
 import com.sportfd.healthapp.model.Patient;
@@ -25,12 +26,13 @@ public class UiController {
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
     private final PolarClient polarClient;
-
-    public UiController(PatientRepository patientRepository, UserRepository userRepository, PolarClient polarClient) {
+    private final ProviderClients clients;
+    public UiController(PatientRepository patientRepository, UserRepository userRepository, PolarClient polarClient, ProviderClients clients) {
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
 
         this.polarClient = polarClient;
+        this.clients = clients;
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -86,6 +88,8 @@ public class UiController {
             case "garmin" -> "Garmin";
             default -> provider;
         };
+
+
         model.addAttribute("providerName", providerName);
         model.addAttribute("pid", pid);
         System.out.println("KRIS_providerName " + providerName);
@@ -96,6 +100,8 @@ public class UiController {
             model.addAttribute("polarRegisterLocation", reg.location());
             model.addAttribute("polarRegisterMessage", reg.message());
             System.out.println("KRIS_MSG" + reg.message());
+        } else if ("Garmin".equals(providerName)) {
+            clients.get(Provider.GARMIN).fillExternalUserId(pid);
         }
 
         return "thanks";

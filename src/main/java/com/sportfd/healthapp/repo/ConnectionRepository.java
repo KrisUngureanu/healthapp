@@ -19,4 +19,6 @@ public interface ConnectionRepository extends JpaRepository<Connection, Long> {
 
 
     Connection findByAccessToken(String oldAccessToken);
+
+    Optional<Connection> findByExternalUserIdAndProvider(String userId, Provider provider);
 }
