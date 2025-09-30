@@ -12,6 +12,22 @@ services:
     ports:
       - "55432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data   # только один пункт, без пустых строк
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: healthapp-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - postgres
+
 volumes:
   pgdata: {}
+  grafana-data: {}

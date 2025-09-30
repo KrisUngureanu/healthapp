@@ -657,11 +657,11 @@ public class PolarClient implements ProviderClient {
 
     @Override
     public void syncAll(Long pid, OffsetDateTime from, OffsetDateTime to) {
-        try {
-            syncHeartRate(pid, from, to);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            syncHeartRate(pid, from, to);
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
 
         try {
             syncSleep(pid, from, to);

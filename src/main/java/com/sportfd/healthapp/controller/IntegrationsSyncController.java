@@ -390,6 +390,19 @@ public class IntegrationsSyncController {
         return "redirect:/patients/" + id;
     }
 
+    @PostMapping("/patients/{id}/integrations/garmin/syncAll")
+    @PreAuthorize("hasAnyRole('DOCTOR','ADMIN')")
+    public String syncGarminAll(@PathVariable Long id,
+                                  @RequestParam(defaultValue="7") int days){
+        var client = clients.get(Provider.GARMIN);
+
+        OffsetDateTime from = OffsetDateTime.now().minusDays(1);
+        OffsetDateTime to = OffsetDateTime.now();
+        client.syncAll(id, from, to);
+
+        return "redirect:/patients/" + id;
+    }
+
 
 
 }
