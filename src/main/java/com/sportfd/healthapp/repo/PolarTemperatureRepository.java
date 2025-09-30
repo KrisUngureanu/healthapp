@@ -16,7 +16,7 @@ public interface PolarTemperatureRepository extends JpaRepository<PolarTemperatu
 
 
     @Query("select w from PolarTemperature w where w.startTime = :startTime and w.patientId = :patientId")
-    Optional<PolarTemperature> findByPatientIdAndStart_time(@Param("patientId") Long patientId, @Param("startTime") OffsetDateTime startTime);
+    PolarTemperature findByPatientIdAndStart_time(@Param("patientId") Long patientId, @Param("startTime") OffsetDateTime startTime);
     @Modifying
     @Transactional
     void deleteByPatientId(Long pid);

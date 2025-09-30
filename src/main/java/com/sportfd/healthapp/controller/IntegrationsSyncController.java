@@ -312,6 +312,83 @@ public class IntegrationsSyncController {
 
         return "redirect:/";
     }
+    @PostMapping("/patients/{id}/integrations/garmin/syncHR")
+    @PreAuthorize("hasAnyRole('DOCTOR','ADMIN')")
+    public String syncGarminHR(@PathVariable Long id,
+                                   @RequestParam(defaultValue="7") int days){
+        var client = clients.get(Provider.GARMIN);
+
+        OffsetDateTime from = OffsetDateTime.now().minusDays(1);
+        OffsetDateTime to = OffsetDateTime.now();
+        client.syncHeartRate(id, from, to);
+
+        return "redirect:/patients/" + id;
+    }
+
+    @PostMapping("/patients/{id}/integrations/garmin/syncSpO2")
+    @PreAuthorize("hasAnyRole('DOCTOR','ADMIN')")
+    public String syncGarminSpO2(@PathVariable Long id,
+                               @RequestParam(defaultValue="7") int days){
+        var client = clients.get(Provider.GARMIN);
+
+        OffsetDateTime from = OffsetDateTime.now().minusDays(1);
+        OffsetDateTime to = OffsetDateTime.now();
+        client.syncSpO2(id, from, to);
+
+        return "redirect:/patients/" + id;
+    }
+
+    @PostMapping("/patients/{id}/integrations/garmin/syncTemperature")
+    @PreAuthorize("hasAnyRole('DOCTOR','ADMIN')")
+    public String syncGarminTemp(@PathVariable Long id,
+                                 @RequestParam(defaultValue="7") int days){
+        var client = clients.get(Provider.GARMIN);
+
+        OffsetDateTime from = OffsetDateTime.now().minusDays(1);
+        OffsetDateTime to = OffsetDateTime.now();
+        client.syncTemperature(id, from, to);
+
+        return "redirect:/patients/" + id;
+    }
+
+    @PostMapping("/patients/{id}/integrations/garmin/syncAct")
+    @PreAuthorize("hasAnyRole('DOCTOR','ADMIN')")
+    public String syncGarminAct(@PathVariable Long id,
+                                 @RequestParam(defaultValue="7") int days){
+        var client = clients.get(Provider.GARMIN);
+
+        OffsetDateTime from = OffsetDateTime.now().minusDays(1);
+        OffsetDateTime to = OffsetDateTime.now();
+        client.syncActivityDaily(id, from, to);
+
+        return "redirect:/patients/" + id;
+    }
+
+    @PostMapping("/patients/{id}/integrations/garmin/syncHealthSnapshot")
+    @PreAuthorize("hasAnyRole('DOCTOR','ADMIN')")
+    public String syncGarminHealthSnapshot(@PathVariable Long id,
+                                @RequestParam(defaultValue="7") int days){
+        var client = clients.get(Provider.GARMIN);
+
+        OffsetDateTime from = OffsetDateTime.now().minusDays(1);
+        OffsetDateTime to = OffsetDateTime.now();
+        client.syncHealthSnapshot(id, from, to);
+
+        return "redirect:/patients/" + id;
+    }
+
+    @PostMapping("/patients/{id}/integrations/garmin/syncDaily")
+    @PreAuthorize("hasAnyRole('DOCTOR','ADMIN')")
+    public String syncGarminDaily(@PathVariable Long id,
+                                @RequestParam(defaultValue="7") int days){
+        var client = clients.get(Provider.GARMIN);
+
+        OffsetDateTime from = OffsetDateTime.now().minusDays(1);
+        OffsetDateTime to = OffsetDateTime.now();
+        client.syncDailySummary(id, from, to);
+
+        return "redirect:/patients/" + id;
+    }
 
 
 

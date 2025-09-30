@@ -1,6 +1,7 @@
 package com.sportfd.healthapp.controller;
 
 import com.sportfd.healthapp.dto.PatientCreateRequest;
+import com.sportfd.healthapp.integration.garmin.GarminService;
 import com.sportfd.healthapp.integration.oura.OuraService;
 import com.sportfd.healthapp.integration.polar.PolarService;
 import com.sportfd.healthapp.integration.whoop.WhoopService;
@@ -26,7 +27,8 @@ public class PatientController {
     private final OuraService ouraService;
     private final WhoopService whoopService;
     private final PolarService polarService;
-    public PatientController(PatientService patientService, PatientRepository patientRepository, OuraService ouraService, WhoopService whoopService, PolarService polarService) {
+    private final GarminService garminService;
+    public PatientController(PatientService patientService, PatientRepository patientRepository, OuraService ouraService, WhoopService whoopService, PolarService polarService, GarminService garminService) {
         this.patientService = patientService;
         this.patientRepository = patientRepository;
 
@@ -34,6 +36,7 @@ public class PatientController {
         this.ouraService = ouraService;
         this.whoopService = whoopService;
         this.polarService = polarService;
+        this.garminService = garminService;
     }
 
 
@@ -163,6 +166,38 @@ public class PatientController {
 
                 PolarUserInfo polarUserInfo = polarService.getPolarUserInfo(id).orElse(null);
                 model.addAttribute("polarUserInfo", polarUserInfo);
+            } else if (device.equals("garmin")){
+
+                List<GarminSleep> garminSleeps = garminService.getGarminSleep(id);
+                model.addAttribute("garminSleeps", garminSleeps);
+
+                List<GarminDailySummary> dailySummaries = garminService.getDailySummary(id);
+                model.addAttribute("dailySummaries", dailySummaries);
+
+                List<GarminActivity> garminActivities = garminService.getActivity(id);
+                model.addAttribute("garminActivities", garminActivities);
+
+                List<GarminSpo> garminSpos = garminService.getSpo(id);
+                model.addAttribute("garminSpos", garminSpos);
+                if (!garminSpos.isEmpty()){
+                    GarminSpo last = garminSpos.getLast();
+                    String summId = last.getSummaryId();
+                    List<GarminSpoValues> garminSpoValues = garminService.getSpoValues(summId);
+                    model.addAttribute("garminSpoValues", garminSpoValues);
+
+                }
+
+                List<GarminTemperature> garminTemperatures = garminService.getTemp(id);
+                model.addAttribute("garminTemperatures", garminTemperatures);
+                List<GarminHealthSnapshot> garminHealthSnapshots =  garminService.getHealthSnapshot(id);
+                model.addAttribute("garminHrvs", garminHealthSnapshots);
+                if (!garminHealthSnapshots.isEmpty()){
+                    GarminHealthSnapshot last = garminHealthSnapshots.getLast();
+                    String summIdHs = last.getSummaryId();
+                    List<GarminHSSummaries> hsSummaries = garminService.getHssSumary(summIdHs);
+                    model.addAttribute("garminHrvValues", hsSummaries);
+                }
+
             }
 
         }

@@ -37,8 +37,8 @@ public interface ProviderClient {
     default void syncUserInfo(Long pid, OffsetDateTime from, OffsetDateTime to) {}
 
     void syncHeartRate(Long patientId, OffsetDateTime from, OffsetDateTime to);
-
-
+    default void syncDailySummary(Long patientId, OffsetDateTime from, OffsetDateTime to){}
+    default void syncHealthSnapshot(Long patientId, OffsetDateTime from, OffsetDateTime to){}
     void syncSpO2(Long patientId, OffsetDateTime from, OffsetDateTime to);
 
     default void deleteUser(Long pid, boolean alsoDisconnectLocally){}

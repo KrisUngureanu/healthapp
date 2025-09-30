@@ -93,15 +93,15 @@ public class PolarClient implements ProviderClient {
     private record TempPoint(OffsetDateTime ts, Float value, String unit) {
     }
 
-    private record HymnoPoint(String time, long  value) {
+    private record HymnoPoint(String time, long value) {
     }
-
 
 
     @Override
     public Provider provider() {
         return Provider.POLAR;
     }
+
     private static String stageName(long id) {
         return switch ((int) id) {
             case 0 -> "AWAKE";
@@ -152,7 +152,7 @@ public class PolarClient implements ProviderClient {
                     .retrieve()
                     .body(TokenResp.class);
         } catch (HttpClientErrorException e) {
-            // Удобно логировать тело ответа от Polar (401/400)
+
             throw new RuntimeException("Polar token exchange failed: " + e.getStatusCode() + " " + e.getResponseBodyAsString(), e);
         }
 
@@ -160,11 +160,12 @@ public class PolarClient implements ProviderClient {
             throw new RuntimeException("Polar token exchange returned empty token");
         }
 
-        // Отметим пациента активным и с устройством POLAR
+
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new IllegalArgumentException("Patient not found: " + patientId));
         patient.setStatus("active");
         patient.setDevice("polar");
+
 
         // Сохраним/обновим токены в нашей таблице connections
         upsertTokens(patientId, token);
@@ -192,16 +193,20 @@ public class PolarClient implements ProviderClient {
 
     private void upsertHeartRateSample(Long pid, String date, Long polarUserId,
                                        String sampleTime, int bpm) {
-        var existing = polarHeartRateRepository.findByPatientIdAndDateAndSampleTime(pid, LocalDate.parse(date), LocalTime.parse(sampleTime))
-                .orElseGet(PolarHeartRate::new);
 
-        existing.setPatientId(pid);
-        existing.setDate(LocalDate.parse(date));
-        existing.setSampleTime(LocalTime.parse(sampleTime));
-        existing.setBpm(bpm);
-        existing.setPolarUserId(polarUserId);
+        PolarHeartRate existing = polarHeartRateRepository.findByPatientIdAndDateAndSampleTime(pid, LocalDate.parse(date), LocalTime.parse(sampleTime));
+        if (existing == null) {
+            existing = new PolarHeartRate();
+            existing.setPatientId(pid);
+            existing.setDate(LocalDate.parse(date));
+            existing.setSampleTime(LocalTime.parse(sampleTime));
+            existing.setBpm(bpm);
+            existing.setPolarUserId(polarUserId);
 
-        polarHeartRateRepository.save(existing);
+            polarHeartRateRepository.save(existing);
+        }
+
+
     }
 
     public List<PolarSleepAvailable.Item> sleepAvailable(Long pid) {
@@ -262,9 +267,9 @@ public class PolarClient implements ProviderClient {
 
         List<PolarSleepAvailable.Item> available = sleepAvailable(pid);
         List<LocalDate> dates = available.stream()
-                .map(PolarSleepAvailable.Item::date)   // String
+                .map(PolarSleepAvailable.Item::date)
                 .filter(Objects::nonNull)
-                .map(LocalDate::parse)                 // -> LocalDate
+                .map(LocalDate::parse)
                 .filter(d -> !d.isBefore(fromD) && !d.isAfter(toD))
                 .distinct()
                 .sorted()
@@ -274,84 +279,88 @@ public class PolarClient implements ProviderClient {
             PolarSleepDto dto = sleepByDate(pid, d);
             if (dto == null) continue;
 
-            var existing = polarSleepRepository.findByPatientIdAndDate(pid, d);
-            PolarSleep ps = existing.orElseGet(PolarSleep::new);
+            PolarSleep existing = polarSleepRepository.findByPatientIdAndDate(pid, d);
+            if (existing == null) {
+                PolarSleep ps = new PolarSleep();
+                ps.setPatientId(pid);
+                ps.setDate(dto.date());
+                ps.setSleepStartTime(dto.sleepStartTime());
+                ps.setSleepEndTime(dto.sleepEndTime());
+                ps.setDeviceId(dto.deviceId());
 
-            ps.setPatientId(pid);
-            ps.setDate(dto.date());
-            ps.setSleepStartTime(dto.sleepStartTime());
-            ps.setSleepEndTime(dto.sleepEndTime());
-            ps.setDeviceId(dto.deviceId());
+                ps.setContinuity(dto.continuity());
+                ps.setContinuityClass(dto.continuityClass());
 
-            ps.setContinuity(dto.continuity());
-            ps.setContinuityClass(dto.continuityClass());
+                ps.setLightSleep(dto.lightSleep());
+                ps.setDeepSleep(dto.deepSleep());
+                ps.setRemSleep(dto.remSleep());
+                ps.setUnrecognizedSleepStage(dto.unrecognizedSleepStage());
 
-            ps.setLightSleep(dto.lightSleep());
-            ps.setDeepSleep(dto.deepSleep());
-            ps.setRemSleep(dto.remSleep());
-            ps.setUnrecognizedSleepStage(dto.unrecognizedSleepStage());
+                ps.setSleepScore(dto.sleepScore());
+                ps.setSleepGoal(dto.sleepGoal());
+                ps.setSleepRating(dto.sleepRating());
 
-            ps.setSleepScore(dto.sleepScore());
-            ps.setSleepGoal(dto.sleepGoal());
-            ps.setSleepRating(dto.sleepRating());
+                ps.setTotalInterruptionDuration(dto.totalInterruptionDuration());
+                ps.setShortInterruptionDuration(dto.shortInterruptionDuration());
+                ps.setLongInterruptionDuration(dto.longInterruptionDuration());
 
-            ps.setTotalInterruptionDuration(dto.totalInterruptionDuration());
-            ps.setShortInterruptionDuration(dto.shortInterruptionDuration());
-            ps.setLongInterruptionDuration(dto.longInterruptionDuration());
-
-            ps.setSleepCycles(dto.sleepCycles());
-            ps.setGroupDurationScore(dto.groupDurationScore());
-            ps.setGroupSolidityScore(dto.groupSolidityScore());
-            ps.setGroupRegenerationScore(dto.groupRegenerationScore());
+                ps.setSleepCycles(dto.sleepCycles());
+                ps.setGroupDurationScore(dto.groupDurationScore());
+                ps.setGroupSolidityScore(dto.groupSolidityScore());
+                ps.setGroupRegenerationScore(dto.groupRegenerationScore());
 
 
-            polarSleepRepository.save(ps);
+                polarSleepRepository.save(ps);
 
-            if (dto.hypnogram() != null && !dto.hypnogram().isNull()) {
-                List<HymnoPoint> hypno = extractPoints(dto.hypnogram());
-          //      polarHypnogramRepository.deleteBySleepId(ps.getId());
+                if (dto.hypnogram() != null && !dto.hypnogram().isNull()) {
+                    List<HymnoPoint> hypno = extractPoints(dto.hypnogram());
 
-                List<PolarHypnogram> rows = new ArrayList<>(hypno.size());
-                for (HymnoPoint p : hypno) {
 
-                    List<PolarHypnogram> hexist = polarHypnogramRepository.findAllByPatientIdAndSleepId(pid, ps.getId());
-                    if (hexist == null){
-                        PolarHypnogram h = new PolarHypnogram();
-                        h.setPatientId(pid);
-                        h.setSleepId(ps.getId());
-                        h.setSleepTime(p.time());
-                        h.setTypeId(p.value());
-                        h.setTypeName(stageName(p.value()));
-                        h.setUserPolar(dto.polarUserUrl());
-                        rows.add(h);
+                    List<PolarHypnogram> rows = new ArrayList<>(hypno.size());
+                    for (HymnoPoint p : hypno) {
+
+                        List<PolarHypnogram> hexist = polarHypnogramRepository.findAllByPatientIdAndSleepId(pid, ps.getId());
+                        if (hexist == null) {
+                            PolarHypnogram h = new PolarHypnogram();
+                            h.setPatientId(pid);
+                            h.setSleepId(ps.getId());
+                            h.setSleepTime(p.time());
+                            h.setTypeId(p.value());
+                            h.setTypeName(stageName(p.value()));
+                            h.setUserPolar(dto.polarUserUrl());
+                            rows.add(h);
+                        }
+
                     }
-
+                    if (!rows.isEmpty()) polarHypnogramRepository.saveAll(rows);
                 }
-                if (!rows.isEmpty()) polarHypnogramRepository.saveAll(rows);
+
+
+                if (dto.heartRateSamples() != null && !dto.heartRateSamples().isNull()) {
+                    List<HymnoPoint> hr = extractPoints(dto.heartRateSamples());
+
+
+                    List<PolarHeartRateSamplesSleep> rows = new ArrayList<>(hr.size());
+                    for (HymnoPoint p : hr) {
+
+                        List<PolarHeartRateSamplesSleep> rex = polarHeartRateSamplesSleepRepository.findAllByPatientIdAndSleepId(pid, ps.getId());
+                        if (rex == null) {
+                            PolarHeartRateSamplesSleep r = new PolarHeartRateSamplesSleep();
+                            r.setPatientId(pid);
+                            r.setSleepId(ps.getId());
+                            r.setSleepTime(p.time());
+                            r.setValueHr(p.value());
+                            r.setUserPolar(dto.polarUserUrl());
+                            rows.add(r);
+                        }
+
+                    }
+                    if (!rows.isEmpty()) polarHeartRateSamplesSleepRepository.saveAll(rows);
+                }
             }
 
 
-            if (dto.heartRateSamples() != null && !dto.heartRateSamples().isNull()) {
-                List<HymnoPoint> hr = extractPoints(dto.heartRateSamples());
-              //  polarHeartRateSamplesSleepRepository.deleteBySleepId(ps.getId());
 
-                List<PolarHeartRateSamplesSleep> rows = new ArrayList<>(hr.size());
-                for (HymnoPoint p : hr) {
-
-                    List<PolarHeartRateSamplesSleep> rex = polarHeartRateSamplesSleepRepository.findAllByPatientIdAndSleepId(pid, ps.getId());
-                    if (rex == null){
-                        PolarHeartRateSamplesSleep r = new PolarHeartRateSamplesSleep();
-                        r.setPatientId(pid);
-                        r.setSleepId(ps.getId());
-                        r.setSleepTime(p.time());
-                        r.setValueHr(p.value());
-                        r.setUserPolar(dto.polarUserUrl());
-                        rows.add(r);
-                    }
-
-                }
-                if (!rows.isEmpty()) polarHeartRateSamplesSleepRepository.saveAll(rows);
-            }
 
         }
 
@@ -627,6 +636,7 @@ public class PolarClient implements ProviderClient {
             c.setPatientId(pid);
             c.setProvider(Provider.POLAR);
         }
+        c.setExternalUserId("63391117");
         c.setAccessToken(t.access_token);
         if (t.refresh_token != null) c.setRefreshToken(t.refresh_token);
         c.setScope(t.scope);
@@ -647,13 +657,13 @@ public class PolarClient implements ProviderClient {
 
     @Override
     public void syncAll(Long pid, OffsetDateTime from, OffsetDateTime to) {
-        try{
+        try {
             syncHeartRate(pid, from, to);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
-        try{
+        try {
             syncSleep(pid, from, to);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -663,43 +673,42 @@ public class PolarClient implements ProviderClient {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        try{
+        try {
             syncTemperature(pid, from, to);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
-        try{
+        try {
             syncNightRecharge(pid, from, to);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        try{
+        try {
             syncCardio(pid, from, to);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        try{
+        try {
             syncWorkout(pid, from, to);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        try{
+        try {
             syncActivityDaily(pid, from, to);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        try{
+        try {
             syncTestEcg(pid, from, to);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        try{
+        try {
             syncSpO2(pid, from, to);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
 
 
     }
@@ -763,7 +772,7 @@ public class PolarClient implements ProviderClient {
             isOk = false;
         }
 
-        if(isOk){
+        if (isOk) {
             var body = resp.getBody();
 
 
@@ -911,47 +920,44 @@ public class PolarClient implements ProviderClient {
             if (items != null) {
                 for (PolarTemperatureDto d : items) {
                     var startTs = parseFlexibleAdditional(d.startTime(), null); // твой гибкий парсер
-                    var entity = polarTemperatureRepository
-                            .findByPatientIdAndStart_time(pid, startTs)
-                            .orElseGet(PolarTemperature::new);
+                    PolarTemperature entity = polarTemperatureRepository
+                            .findByPatientIdAndStart_time(pid, startTs);
+                    if (entity == null){
+                        entity = new PolarTemperature();
+                        entity.setPatientId(pid);
+                        entity.setSource_device_id(d.sourceDeviceId());
+                        entity.setStartTime(startTs);
+                        entity.setEndTime(parseFlexibleAdditional(d.endTime(), null));
+                        entity.setMeasurement_type(d.measurementType());
+                        entity.setSensor_location(d.sensorLocation());
 
-                    entity.setPatientId(pid);
-                    entity.setSource_device_id(d.sourceDeviceId());
-                    entity.setStartTime(startTs);
-                    entity.setEndTime(parseFlexibleAdditional(d.endTime(), null));
-                    entity.setMeasurement_type(d.measurementType());
-                    entity.setSensor_location(d.sensorLocation());
+                        if (d.samples() != null && !d.samples().isNull()) {
 
-                    if (d.samples() != null && !d.samples().isNull()) {
-
-                        entity.setSamples(d.samples().toString());
-                    }
-                    polarTemperatureRepository.save(entity);
-
-                    OffsetDateTime baseStart = parseFlexibleAdditional(d.startTime(), null);
-
-
-                    if (entity.getId() != null) {
-                   //     polarTemperatureSampleRepository.deleteByTemperatureId(entity.getId());
-                    }
-
-
-                    var pts = extractTempSamplesDelta(d.samples(), baseStart, "C");
-
-
-                    if (!pts.isEmpty()) {
-                        List<PolarTemperatureSample> rows = new ArrayList<>(pts.size());
-                        for (var p : pts) {
-                            PolarTemperatureSample row = new PolarTemperatureSample();
-                            row.setPatientId(pid);
-                            row.setTemperatureId(entity.getId());
-                            row.setSampleTime(p.ts());
-                            row.setValue(p.value());
-                            row.setUnit(p.unit());
-                            rows.add(row);
+                            entity.setSamples(d.samples().toString());
                         }
-                        polarTemperatureSampleRepository.saveAll(rows);
+                        polarTemperatureRepository.save(entity);
+
+                        OffsetDateTime baseStart = parseFlexibleAdditional(d.startTime(), null);
+
+
+                        var pts = extractTempSamplesDelta(d.samples(), baseStart, "C");
+
+
+                        if (!pts.isEmpty()) {
+                            List<PolarTemperatureSample> rows = new ArrayList<>(pts.size());
+                            for (var p : pts) {
+                                PolarTemperatureSample row = new PolarTemperatureSample();
+                                row.setPatientId(pid);
+                                row.setTemperatureId(entity.getId());
+                                row.setSampleTime(p.ts());
+                                row.setValue(p.value());
+                                row.setUnit(p.unit());
+                                rows.add(row);
+                            }
+                            polarTemperatureSampleRepository.saveAll(rows);
+                        }
                     }
+
                 }
             }
 
@@ -1137,8 +1143,6 @@ public class PolarClient implements ProviderClient {
     }
 
 
-
-
     private static OffsetDateTime parseSampleTime(JsonNode n, Integer offsetMinutes) {
         // "time": string ISO / без смещения / с Z
         if (n.hasNonNull("time")) {
@@ -1182,6 +1186,7 @@ public class PolarClient implements ProviderClient {
         }
         return null;
     }
+
     @Override
     @Transactional
     public void deleteUser(Long pid, boolean alsoDisconnectLocally) {
@@ -1214,32 +1219,35 @@ public class PolarClient implements ProviderClient {
                 });
 
 
-                 connections.deleteByPatientIdAndProvider(pid, Provider.POLAR);
-                 polarHeartRateRepository.deleteByPatientId(pid);
-                 polarNightRechargeRepository.deleteByPatientId(pid);
-                 polarSpoRepository.deleteByPatientId(pid);
-                 polarTemperatureRepository.deleteByPatientId(pid);
-                 polarTemperatureSampleRepository.deleteByPatientId(pid);
-                 polarTestECGRepository.deleteByPatientId(pid);
-                 polarActivitiesRepository.deleteByPatientId(pid);
-                 polarExercisesRepository.deleteByPatientId(pid);
-                 polarCardioRepository.deleteByPatientId(pid);
-                 polarUserInfoRepository.deleteByPatientId(pid);
-                 patientRepository.deleteById(pid);
+                connections.deleteByPatientIdAndProvider(pid, Provider.POLAR);
+                polarHeartRateRepository.deleteByPatientId(pid);
+                polarNightRechargeRepository.deleteByPatientId(pid);
+                polarSpoRepository.deleteByPatientId(pid);
+                polarTemperatureRepository.deleteByPatientId(pid);
+                polarTemperatureSampleRepository.deleteByPatientId(pid);
+                polarTestECGRepository.deleteByPatientId(pid);
+                polarActivitiesRepository.deleteByPatientId(pid);
+                polarExercisesRepository.deleteByPatientId(pid);
+                polarCardioRepository.deleteByPatientId(pid);
+                polarUserInfoRepository.deleteByPatientId(pid);
+                patientRepository.deleteById(pid);
             }
 
         }
 
 
     }
+
     private String requireExternalUserId(Long pid) {
         var c = connections.findByPatientIdAndProvider(pid, Provider.POLAR)
                 .orElseThrow(() -> new IllegalStateException("Polar not connected for patient " + pid));
         String ext = c.getExternalUserId();
-        if (ext == null || ext.isBlank()) throw new IllegalStateException("externalUserId is empty; user not registered?");
+        if (ext == null || ext.isBlank())
+            throw new IllegalStateException("externalUserId is empty; user not registered?");
         int slash = ext.lastIndexOf('/');
         return slash >= 0 ? ext.substring(slash + 1) : ext; // поддержка URL и «чистого» id
     }
+
     public record PolarRegisterResult(PolarRegisterStatus status, String location, String message) {
     }
 }

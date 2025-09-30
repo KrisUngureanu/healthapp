@@ -14,7 +14,7 @@ import java.util.Optional;
 
 public interface PolarHeartRateRepository extends JpaRepository<PolarHeartRate, Long> {
     @Query("select w from PolarHeartRate w where w.patientId = :patientId and w.date = :date and w.sampleTime = :sampleTime")
-    Optional<PolarHeartRate> findByPatientIdAndDateAndSampleTime(Long patientId, LocalDate date, LocalTime sampleTime);
+    PolarHeartRate findByPatientIdAndDateAndSampleTime(Long patientId, LocalDate date, LocalTime sampleTime);
     @Modifying
     @Transactional
     void deleteByPatientId(Long pid);

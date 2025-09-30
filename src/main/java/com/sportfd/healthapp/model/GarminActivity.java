@@ -21,6 +21,18 @@ public class GarminActivity {
     private int maxHr;
     private int calories;
     private float distanceMeters;
+    private String summaryId;
+
+    private String activityName;
+    private String activityDescription;
+    private String activityType;
+    private float averageHeartRateInBeatsPerMinute;
+    private float averageRunCadenceInStepsPerMinute;
+    private float averageSpeedInMetersPerSecond;
+    private float averagePaceInMinutesPerKilometer;
+    private Integer steps;
+
+
 
     @Column(columnDefinition = "text") private String payloadJson;
 }

@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PolarSleepRepository extends JpaRepository<PolarSleep, Long> {
-    Optional<PolarSleep> findByPatientIdAndDate(Long patientId, LocalDate date);
+    PolarSleep findByPatientIdAndDate(Long patientId, LocalDate date);
 
     List<PolarSleep> findByPatientId(Long pid);
 }

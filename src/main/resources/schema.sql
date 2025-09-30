@@ -474,33 +474,33 @@ create table if not exists polar_userinfo
 );
 create table if not exists polar_temperature_sample
 (
-    id              bigserial primary key,
-    patient_id      bigint,
-    temperature_id  bigint,
-    sample_time     timestamptz not null,
-    value           real        not null,
-    unit            varchar(16),
-    created_at      timestamptz default now(),
-    updated_at      timestamptz default now()
+    id             bigserial primary key,
+    patient_id     bigint,
+    temperature_id bigint,
+    sample_time    timestamptz not null,
+    value          real        not null,
+    unit           varchar(16),
+    created_at     timestamptz default now(),
+    updated_at     timestamptz default now()
 );
 create table if not exists hypnogram
 (
-    id              bigserial primary key,
-    patient_id      bigint,
-    sleep_id        bigint,
-    sleep_time      varchar(16),
-    type_id         bigint,
-    type_name       varchar(16),
-    user_polar      varchar(128)
+    id         bigserial primary key,
+    patient_id bigint,
+    sleep_id   bigint,
+    sleep_time varchar(16),
+    type_id    bigint,
+    type_name  varchar(16),
+    user_polar varchar(128)
 );
 create table if not exists heart_rate_samples_sleep
 (
-    id              bigserial primary key,
-    patient_id      bigint,
-    sleep_id        bigint,
-    sleep_time      varchar(16),
-    value_hr         bigint,
-    user_polar      varchar(128)
+    id         bigserial primary key,
+    patient_id bigint,
+    sleep_id   bigint,
+    sleep_time varchar(16),
+    value_hr   bigint,
+    user_polar varchar(128)
 );
 create table if not exists garmin_webhook_events
 (
@@ -513,43 +513,168 @@ create table if not exists garmin_webhook_events
     payload_json varchar(256),
     received_at  timestamp with time zone
 );
-create table if not exists garmin_activity (
-                                               id bigserial primary key,
-                                               patient_id bigint not null,
-                                               activity_id varchar(255) unique,
-                                               sport varchar(255),
-                                               start_time timestamptz,
-                                               end_time timestamptz,
-                                               avg_hr int,
-                                               max_hr int,
-                                               calories int,
-                                               distance_meters real,
-                                               payload_json text
+
+
+create table if not exists garmin_sleep
+(
+    id                 bigserial primary key,
+    patient_id         bigint not null,
+    sleep_id           varchar(255) unique,
+    start_time         timestamptz,
+    end_time           timestamptz,
+    score              int,
+    duration_sec       int,
+    payload_json       text,
+    deepSleepDuration  int,
+    lightSleepDuration int,
+    remSleep           int,
+    awakeDuration      int,
+    total_duration_q   VARCHAR(16),
+    stress_q           VARCHAR(16),
+    awake_count_q      VARCHAR(16),
+    rem_percentage_q   VARCHAR(16),
+    light_percentage_q VARCHAR(16),
+    deep_percentage_q  VARCHAR(16),
+    restlessness_q     VARCHAR(16)
 );
 
-create table if not exists garmin_daily_summary (
-                                                    id bigserial primary key,
-                                                    patient_id bigint not null,
-                                                    summary_id varchar(255) unique,
-                                                    day varchar(20),          -- формат YYYY-MM-DD
-                                                    steps int,
-                                                    calories int,
-                                                    stress int,
-                                                    body_battery int,
-                                                    payload_json text,
-                                                    updated_at timestamptz
+
+-- Garmin Activity
+create table if not exists garmin_activity
+(
+    id                                      bigserial primary key,
+    patient_id                              bigint not null,
+    activity_id                             varchar(255),
+    sport                                   varchar(128),
+    start_time                              timestamptz,
+    end_time                                timestamptz,
+    avg_hr                                  int,
+    max_hr                                  int,
+    calories                                int,
+    distance_meters                         float,
+    summary_id                              varchar(255),
+
+    activity_name                           varchar(255),
+    activity_description                    text,
+    activity_type                           varchar(128),
+    average_heart_rate_in_beats_per_minute  float,
+    average_run_cadence_in_steps_per_minute float,
+    average_speed_in_meters_per_second      float,
+    average_pace_in_minutes_per_kilometer   float,
+    steps                                   int,
+
+    payload_json                            text
 );
 
-create table if not exists garmin_sleep (
-                                            id bigserial primary key,
-                                            patient_id bigint not null,
-                                            sleep_id varchar(255) unique,
-                                            start_time timestamptz,
-                                            end_time timestamptz,
-                                            score int,
-                                            duration_sec int,
-                                            payload_json text
+-- Garmin Daily Summary
+create table if not exists garmin_daily_summary
+(
+    id                                     bigserial primary key,
+    patient_id                             bigint not null,
+    summary_id                             varchar(255),
+    day                                    varchar(32),
+    steps                                  int,
+    active_kilocalories                    int,
+    bmr_kilocalories                       int,
+
+    max_stress_level                       int,
+    body_battery_charged_value             int,
+    body_battery_drained_value             int,
+    payload_json                           text,
+    updated_at                             timestamptz,
+
+    activity_type                          varchar(128),
+    pushes                                 int,
+    distance_in_meters                     float,
+    push_distance_in_meters                float,
+    floors_climbed                         int,
+    min_heart_rate_in_beats_per_minute     int,
+    max_heart_rate_in_beats_per_minute     int,
+    average_heart_rate_in_beats_per_minute int,
+    resting_heart_rate_in_beats_per_minute int,
+    average_stress_level                   int
 );
+
+-- Garmin Health Snapshot
+create table if not exists garmin_health_snapshot
+(
+    id                           bigserial primary key,
+    patient_id                   bigint not null,
+    summary_id                   varchar(255),
+    calendar_date                varchar(32),
+    start_time_in_seconds        int,
+    duration_in_seconds          int,
+    start_time_offset_in_seconds int,
+    summaries                    text
+);
+-- HRV summary
+create table if not exists garmin_hrv
+(
+    id                           bigserial primary key,
+    patient_id                   bigint not null,
+    summary_id                   varchar(255),
+    calendar_date                varchar(32),
+    last_night_avg               int,
+    last_night_5min_high         int,
+    start_time_offset_in_seconds int,
+    duration_in_seconds          int,
+    start_time_in_seconds        int,
+    hrv_values                   text
+);
+
+-- HRV values (детализированные замеры)
+create table if not exists garmin_hrv_values
+(
+    id             bigserial primary key,
+    summary_id     varchar(255),
+    time_in_second varchar(32),
+    value          bigint
+);
+
+-- Health Snapshot Summaries (типы значений: стресс, пульс и т.п.)
+create table if not exists garmin_hs_summaries
+(
+    id           bigserial primary key,
+    summary_id   varchar(255),
+    summary_type varchar(64), -- Enum хранить строкой
+    min_value    float,
+    max_value    float,
+    avg_value    float
+);
+
+-- SpO2 summary
+create table if not exists garmin_spo
+(
+    id                     bigserial primary key,
+    summary_id             varchar(255),
+    calendar_date          timestamptz,
+    patient_id             bigint not null,
+    time_offset_spo_values text
+);
+
+-- SpO2 values (помесячные/поминутные значения)
+create table if not exists garmin_spo_values
+(
+    id          bigserial primary key,
+    summary_id  varchar(255),
+    time_in_sec varchar(32),
+    value       int
+);
+
+-- Temperature
+create table if not exists garmin_temperature
+(
+    id                           bigserial primary key,
+    summary_id                   varchar(255),
+    calendar_date                timestamptz,
+    patient_id                   bigint not null,
+    avg_deviation_celsius        float,
+    duration_in_seconds          int,
+    start_time_in_seconds        int,
+    start_time_offset_in_seconds int
+);
+
+
 
 insert into users(email, role, user_id, username, password)
 values ('dame_un_beso@mail.ru', 'ADMIN', 1, 'admin', '$2a$12$kjIiKlk/ZFPEVHVRV970we5v2Sh4VIW54kVyZJZxXh6wCwLwx7QG6')

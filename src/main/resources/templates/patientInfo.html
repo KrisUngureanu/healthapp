@@ -120,10 +120,7 @@
                             <button class="btn btn-outline-light"><i class="bi bi-cloud-arrow-down"></i> Получить данные</button>
                         </form>
 
-                        <form th:if="${st == 'active'}" th:action="@{/patients/{id}/integrations/{provider}/syncSleep(id=${patient.id}, provider=${patient.device})}" method="post" class="mb-0">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                            <button class="btn btn-outline-light"><i class="bi bi-cloud-arrow-down"></i> Получить данные Garmin</button>
-                        </form>
+
 
                         <form th:if="${st == 'active'}"
                               th:action="@{/patients/{id}/integrations/{provider}/deleteUser(id=${patient.id}, provider=${patient.device})}"
@@ -1070,6 +1067,359 @@
 
             </div>
         </div>
+
+
+
+        <!-- GARMIN -->
+        <div class="tab-pane fade show active"  th:if="${patient.device=='garmin'}"  id="garmin-pane" role="tabpanel" aria-labelledby="garmin-tab">
+            <div th:if="${patient.device == 'garmin' and patient.status == 'active'}" class="d-flex flex-column gap-3">
+
+
+                <div th:if="${#lists.isEmpty(garminSleeps)}" class="alert alert-info mt-3">Нет данных по сну за выбранный период.</div>
+                <div th:if="${not #lists.isEmpty(garminSleeps)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Garmin sleep</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-polar-activities','polar_activities.csv')"><i class="bi bi-download"></i> CSV</button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-polar-activities-wrap"><i class="bi bi-arrows-vertical"></i> Плотнее</button>
+                        </div>
+                    </div>
+                    <div id="tbl-garmin-sleep-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-garmin-sleep"
+                               class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Начало</th>
+                                <th>Конец</th>
+                                <th>Оценка (балл)</th>
+                                <th>Длительность, мин</th>
+                                <th>Глубокий сон, мин</th>
+                                <th>Лёгкий сон, мин</th>
+                                <th>REM-сон, мин</th>
+                                <th>Бодрствование, мин</th>
+                                <th>Длительность (кач.)</th>
+                                <th>Стресс (кач.)</th>
+                                <th>Пробуждения (кач.)</th>
+                                <th>Доля REM (кач.)</th>
+                                <th>Доля лёгкого (кач.)</th>
+                                <th>Доля глубокого (кач.)</th>
+                                <th>Беспокойность (кач.)</th>
+                            </tr>
+                            </thead>
+
+                            <tbody>
+                            <tr th:each="a : ${garminSleeps}">
+                                <td th:text="${a.startTime != null ? #temporals.format(a.startTime,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${a.endTime   != null ? #temporals.format(a.endTime  ,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+
+                                <td th:text="${a.score != null ? a.score : '-'}">-</td>
+
+                                <td th:text="${a.durationSec       != null ? a.durationSec       / 60 : '-'}">-</td>
+                                <td th:text="${a.deepSleepDuration != null ? a.deepSleepDuration / 60 : '-'}">-</td>
+                                <td th:text="${a.lightSleepDuration!= null ? a.lightSleepDuration/ 60 : '-'}">-</td>
+                                <td th:text="${a.remSleep          != null ? a.remSleep          / 60 : '-'}">-</td>
+                                <td th:text="${a.awakeDuration     != null ? a.awakeDuration     / 60 : '-'}">-</td>
+
+                                <td th:text="${a.totalDurationQ   != null ? a.totalDurationQ   : '-'}">-</td>
+                                <td th:text="${a.stressQ          != null ? a.stressQ          : '-'}">-</td>
+                                <td th:text="${a.awakeCount       != null ? a.awakeCount       : '-'}">-</td>
+                                <td th:text="${a.remPercentage    != null ? a.remPercentage    : '-'}">-</td>
+                                <td th:text="${a.lightPercentage  != null ? a.lightPercentage  : '-'}">-</td>
+                                <td th:text="${a.deepPercentage   != null ? a.deepPercentage   : '-'}">-</td>
+                                <td th:text="${a.restlessness     != null ? a.restlessness     : '-'}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+
+                    </div>
+                </div>
+                <div th:if="${#lists.isEmpty(dailySummaries)}" class="alert alert-info mt-3">
+                    Нет данных по ежедневным сводкам за выбранный период.
+                </div>
+                <div th:if="${not #lists.isEmpty(dailySummaries)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Garmin Daily Summary</strong>
+                    </div>
+                    <div class="table-responsive scroll-shadow">
+                        <table class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Шаги</th>
+                                <th>Активные ккал</th>
+                                <th>BMR ккал</th>
+                                <th>Макс. стресс</th>
+                                <th>Body Battery заряд</th>
+                                <th>Body Battery разряд</th>
+                                <th>Этажи</th>
+                                <th>Мин. ЧСС</th>
+                                <th>Макс. ЧСС</th>
+                                <th>Ср. ЧСС</th>
+                                <th>ЧСС в покое</th>
+                                <th>Ср. стресс</th>
+                                <th>Обновлено</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="d : ${dailySummaries}">
+                                <td th:text="${d.day}">-</td>
+                                <td th:text="${d.steps}">-</td>
+                                <td th:text="${d.activeKilocalories}">-</td>
+                                <td th:text="${d.bmrKilocalories}">-</td>
+                                <td th:text="${d.maxStressLevel}">-</td>
+                                <td th:text="${d.bodyBatteryChargedValue}">-</td>
+                                <td th:text="${d.bodyBatteryDrainedValue}">-</td>
+                                <td th:text="${d.floorsClimbed}">-</td>
+                                <td th:text="${d.minHeartRateInBeatsPerMinute}">-</td>
+                                <td th:text="${d.maxHeartRateInBeatsPerMinute}">-</td>
+                                <td th:text="${d.averageHeartRateInBeatsPerMinute}">-</td>
+                                <td th:text="${d.restingHeartRateInBeatsPerMinute}">-</td>
+                                <td th:text="${d.averageStressLevel}">-</td>
+                                <td th:text="${d.updatedAt != null ? #temporals.format(d.updatedAt,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div th:if="${#lists.isEmpty(garminActivities)}" class="alert alert-info mt-3">
+                    Нет данных по активностям.
+                </div>
+                <div th:if="${not #lists.isEmpty(garminActivities)}" class="card mt-3">
+                    <div class="card-header">
+                        <strong>Garmin Activity</strong>
+                    </div>
+                    <div class="table-responsive scroll-shadow">
+                        <table class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Начало</th>
+                                <th>Конец</th>
+                                <th>Вид спорта</th>
+                                <th>Средний пульс</th>
+                                <th>Макс. пульс</th>
+                                <th>Калории</th>
+                                <th>Дистанция (м)</th>
+                                <th>Шаги</th>
+                                <th>Скорость (м/с)</th>
+                                <th>Темп (мин/км)</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="a : ${garminActivities}">
+                                <td th:text="${a.startTime != null ? #temporals.format(a.startTime,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${a.endTime   != null ? #temporals.format(a.endTime  ,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${a.sport}">-</td>
+                                <td th:text="${a.avgHr}">-</td>
+                                <td th:text="${a.maxHr}">-</td>
+                                <td th:text="${a.calories}">-</td>
+                                <td th:text="${a.distanceMeters}">-</td>
+                                <td th:text="${a.steps}">-</td>
+                                <td th:text="${a.averageSpeedInMetersPerSecond}">-</td>
+                                <td th:text="${a.averagePaceInMinutesPerKilometer}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- SPO: summaries -->
+                <div th:if="${#lists.isEmpty(garminSpos)}" class="alert alert-info mt-3">
+                    Нет данных SpO₂ за выбранный период.
+                </div>
+                <div th:if="${not #lists.isEmpty(garminSpos)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Garmin SpO₂ — сводки</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-garmin-spo','garmin_spo.csv')">
+                                <i class="bi bi-download"></i> CSV
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-garmin-spo-wrap">
+                                <i class="bi bi-arrows-vertical"></i> Плотнее
+                            </button>
+                        </div>
+                    </div>
+                    <div id="tbl-garmin-spo-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-garmin-spo" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Summary ID</th>
+                                <th>Пациент</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="s : ${garminSpos}">
+                                <td th:text="${s.calendarDate != null ? #temporals.format(s.calendarDate,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${s.summaryId}">-</td>
+                                <td th:text="${s.patientId}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SPO: values for last summary -->
+                <div th:if="${not #lists.isEmpty(garminSpoValues)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Garmin SpO₂ — точки (последняя сводка)</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-garmin-spo-values','garmin_spo_values.csv')">
+                                <i class="bi bi-download"></i> CSV
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-garmin-spo-values-wrap">
+                                <i class="bi bi-arrows-vertical"></i> Плотнее
+                            </button>
+                        </div>
+                    </div>
+                    <div id="tbl-garmin-spo-values-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-garmin-spo-values" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Summary ID</th>
+                                <th>Секунда</th>
+                                <th>SpO₂, %</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="v : ${garminSpoValues}">
+                                <td th:text="${v.summaryId}">-</td>
+                                <td th:text="${v.timeinSec}">-</td>
+                                <td th:text="${v.value}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- HRV: summaries -->
+                <div th:if="${#lists.isEmpty(garminHrvs)}" class="alert alert-info mt-3">
+                    Нет данных HRV за выбранный период.
+                </div>
+                <div th:if="${not #lists.isEmpty(garminHrvs)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Garmin HRV — сводки</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-garmin-hrv','garmin_hrv.csv')">
+                                <i class="bi bi-download"></i> CSV
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-garmin-hrv-wrap">
+                                <i class="bi bi-arrows-vertical"></i> Плотнее
+                            </button>
+                        </div>
+                    </div>
+                    <div id="tbl-garmin-hrv-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-garmin-hrv" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Summary ID</th>
+                                <th>Пациент</th>
+                                <th>Начало (сек)</th>
+                                <th>Смещение (сек)</th>
+                                <th>Длительность, мин</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="h : ${garminHrvs}">
+                                <td th:text="${h.calendarDate}">-</td>
+                                <td th:text="${h.summaryId}">-</td>
+                                <td th:text="${h.patientId}">-</td>
+                                <td th:text="${h.startTimeInSeconds}">-</td>
+                                <td th:text="${h.startTimeOffsetInSeconds}">-</td>
+                                <td th:text="${h.durationInSeconds != null ? h.durationInSeconds/60 : '-'}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- HRV: values for last summary -->
+                <div th:if="${not #lists.isEmpty(garminHrvValues)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Garmin HRV — точки (последняя сводка)</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-garmin-hrv-values','garmin_hrv_values.csv')">
+                                <i class="bi bi-download"></i> CSV
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-garmin-hrv-values-wrap">
+                                <i class="bi bi-arrows-vertical"></i> Плотнее
+                            </button>
+                        </div>
+                    </div>
+                    <div id="tbl-garmin-hrv-values-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-garmin-hrv-values" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Summary ID</th>
+                                <th>Макс</th>
+                                <th>Мин</th>
+                                <th>Среднее</th>
+                                <th>Тип</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="v : ${garminHrvValues}">
+                                <td th:text="${v.summaryId}">-</td>
+                                <td th:text="${v.maxValue}">-</td>
+                                <td th:text="${v.minValue}">-</td>
+                                <td th:text="${v.avgValue}">-</td>
+                                <td th:text="${v.summaryType.name()}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div th:if="${#lists.isEmpty(garminTemperatures)}" class="alert alert-info mt-3">
+                    Нет данных по температуре за выбранный период.
+                </div>
+                <div th:if="${not #lists.isEmpty(garminTemperatures)}" class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Garmin Temperature</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-light" onclick="exportTable('#tbl-garmin-temp','garmin_temperature.csv')">
+                                <i class="bi bi-download"></i> CSV
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" data-density-toggle data-target="#tbl-garmin-temp-wrap">
+                                <i class="bi bi-arrows-vertical"></i> Плотнее
+                            </button>
+                        </div>
+                    </div>
+                    <div id="tbl-garmin-temp-wrap" class="table-responsive scroll-shadow">
+                        <table id="tbl-garmin-temp" class="table table-sm table-striped table-hover align-middle table-fit">
+                            <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Summary ID</th>
+                                <th>Пациент</th>
+                                <th>Ср. отклонение, °C</th>
+                                <th>Начало (сек)</th>
+                                <th>Смещение (сек)</th>
+                                <th>Длительность, мин</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="t : ${garminTemperatures}">
+                                <td th:text="${t.calendarDate != null ? #temporals.format(t.calendarDate,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                <td th:text="${t.summaryId}">-</td>
+                                <td th:text="${t.patientId}">-</td>
+                                <td th:text="${t.avgDeviationCelsius}">-</td>
+                                <td th:text="${t.startTimeInSeconds}">-</td>
+                                <td th:text="${t.startTimeOffsetInSeconds}">-</td>
+                                <td th:text="${t.durationInSeconds != null ? t.durationInSeconds/60 : '-'}">-</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+
+
+
+
+
+
+            </div>
+        </div>
+
+
 
     </div>
 

@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>HealthApp</title>
+    <title>OlimpicIQ</title>
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
@@ -44,7 +44,7 @@
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" th:href="@{/}">HealthApp</a>
+        <a class="navbar-brand" th:href="@{/}">OlimpicIQ</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -62,7 +62,7 @@
 
                 <!-- Пример пункта только для роли DOCTOR -->
                 <li class="nav-item" sec:authorize="hasRole('DOCTOR')">
-                    <a class="nav-link" th:href="@{/}">Patients</a>
+                    <a class="nav-link" th:href="@{/}">Пациенты</a>
                 </li>
 
                 <!-- Гость: показать Sign In / Register -->
